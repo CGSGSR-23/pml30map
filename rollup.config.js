@@ -7,7 +7,7 @@ const replace = require("@rollup/plugin-replace");
 
 module.exports = [
   {
-    input: "src/viewer.ts",
+    input: "src/viewer.tsx",
     output: {
       file: "dist/viewer_bundle.js",
       format: "es",
@@ -30,7 +30,7 @@ module.exports = [
     ],
   },
   {
-    input: "src/editor.ts",
+    input: "src/editor.tsx",
     output: {
       file: "dist/editor_bundle.js",
       format: "es",
@@ -53,7 +53,7 @@ module.exports = [
     ],
   },
   {
-    input: "src/server.ts",
+    input: "src/server.tsx",
     output: {
       file: "dist/server_bundle.js",
       format: "es",
