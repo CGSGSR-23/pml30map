@@ -1,0 +1,42 @@
+@import './support/layout.css';
+@import './support/ui.css';
+
+:root {
+  --bg-color: rgba(205, 205, 205, 0.631);
+  --sub-bg-color: rgba(101, 101, 101, 0.631);
+  --main-color: rgb(55, 55, 55);
+  --sub-main-color: rgb(31, 31, 31);
+  --text-color: white;
+  --acitve-text-color: black;
+}
+
+body {
+  font-family: 'consolas';
+  /*display: flex;*/
+  /*flex-direction: column;*/
+}
+
+p {
+  margin: 0;
+  align-self: center;
+  padding-left: 0.5em;
+}
+
+h1 {
+  padding-left: 1em;
+  margin: 0;
+}
+
+h2 {
+  padding-left: 0.7em;
+  margin: 0;
+}
+
+h3 {
+  padding-left: 0.7em;
+  margin: 0;
+}
+
+.description {
+  font-size: 0.7em;
+}

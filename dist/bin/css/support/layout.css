@@ -1,0 +1,67 @@
+.gapped {
+  margin: 0.5em;
+}
+
+.gapped2 {
+  margin: 1em;
+}
+
+.padded {
+  padding: 0.5em;
+}
+
+.padded2 {
+  padding: 1em;
+}
+
+.rounded {
+  border-radius: 0.5em;
+}
+
+.flexRow {
+  display: flex;
+  flex-direction: row;
+  
+  &.spaceBetween {
+    justify-content: space-between;
+  }
+}
+
+.flexColumn {
+  display: flex;
+  flex-direction: column;
+
+  &.spaceBetween {
+    justify-content: space-between;
+  }
+}
+
+.flexBox {
+  display: flex;
+}
+
+.flex2 {
+  flex: 2;
+}
+
+.flex1 {
+  flex: 1;  
+}
+
+.flex0 {
+  flex: 0;
+}
+
+.fullMaxSize {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.fullSize {
+  width: 100%;
+  height: 100%;
+}
+
+.globalP {
+  position: absolute;
+}
