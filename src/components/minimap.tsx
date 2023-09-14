@@ -14,7 +14,7 @@ interface FloorInfo {
   fileName: string
 }
 
-interface MapSetInfo {
+export interface MapSetInfo {
   name: string,
 
   floorCount: number,

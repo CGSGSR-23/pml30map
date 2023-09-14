@@ -1,23 +1,24 @@
 const { MongoClient, ObjectId } = require("mongodb");
 
-class MongoDB { // Nodes data base
-  db;
+function recreateID( array ) {
+  for (let i = 0; i < array.length; i++)
+    if (array[i] != undefined)
+      if (array[i]._id != undefined)
+        array[i]._id = new ObjectId(array[i]._id);//delete array[i]._id;
+  return array;
+}
+
+class DataBase {
   nodesC; // Nodes collection
   connectionsC; // Connection collection
   varsC; // Variables collection
-  mongodbConnection;
-
-  async init( mongodbURL, DNName ) {
-    const mongodbClient = new MongoClient(mongodbURL);
-    this.mongodbConnection = await mongodbClient.connect();
-    
-    this.db = await this.mongodbConnection.db(DNName);
-    //if (this.db.nodes == undefined)
-    this.nodesC = await this.db.collection("nodes");
-    this.connectionsC = await this.db.collection("connections");
-    this.varsC = await this.db.collection("variables");
-  }
   
+  async init( db ) {
+    this.nodesC = await db.collection("nodes");
+    this.connectionsC = await db.collection("connections");
+    this.varsC = await db.collection("variables");
+  }
+
   //////////// Nodes
 
   async getNode( uri ) {
@@ -66,6 +67,7 @@ class MongoDB { // Nodes data base
       outN[outN.length] = left[i].id1;
     return outN;
   }
+
   //////////////////// Connections
 
   async addConnection( uri1, uri2 ) {
@@ -158,26 +160,18 @@ class MongoDB { // Nodes data base
     };
   }
 
-  static recreateID( array ) {
-    for (let i = 0; i < array.length; i++)
-      if (array[i] != undefined)
-        if (array[i]._id != undefined)
-          array[i]._id = new ObjectId(array[i]._id);//delete array[i]._id;
-    return array;
-  }
-
   async loadDB( newDB ) {
     // Clear Collection
     await this.clearDB();
     // Load nodes
     if (newDB.nodes.length > 0)
-      await this.nodesC.insertMany(MongoDB.recreateID(newDB.nodes));
+      await this.nodesC.insertMany(recreateID(newDB.nodes));
     // Load connections
     if (newDB.connections.length > 0)
-      await this.connectionsC.insertMany(MongoDB.recreateID(newDB.connections));
+      await this.connectionsC.insertMany(recreateID(newDB.connections));
     // Load variables
     if (newDB.variables.length > 0)
-      await this.varsC.insertMany(MongoDB.recreateID(newDB.variables));
+      await this.varsC.insertMany(recreateID(newDB.variables));
     
     return true;
   }
@@ -185,13 +179,35 @@ class MongoDB { // Nodes data base
   async addDB( newDB ) {
     // Load nodes
     if (newDB.nodes.length > 0)
-      await this.nodesC.insertMany(MongoDB.recreateID(newDB.nodes));
+      await this.nodesC.insertMany(recreateID(newDB.nodes));
     // Load connections
     if (newDB.connections.length > 0)
-      await this.connectionsC.insertMany(MongoDB.recreateID(newDB.connections));
+      await this.connectionsC.insertMany(recreateID(newDB.connections));
     
     return true;
   }
 }
 
-module.exports = MongoDB;
+export class MongoDB { // Nodes data base
+  dbs;
+  mongodbConnection;
+
+  async init( mongodbURL: string, dbNames: string[] ) {
+    const mongodbClient = new MongoClient(mongodbURL);
+    this.mongodbConnection = await mongodbClient.connect();
+    var dbs = [];
+
+    await Promise.all(dbNames.map(async ( name: string )=>{
+      const db = new DataBase();
+
+      await db.init(await this.mongodbConnection.db(name));
+      dbs.push({ [name]: db });
+    }));
+
+    this.dbs = {};
+
+    dbs.map((e)=>{
+      this.dbs = {...this.dbs, ...e};
+    });
+  }
+}

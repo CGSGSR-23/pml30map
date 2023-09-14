@@ -19,7 +19,11 @@ module.exports = [
 		    'process.env.NODE_ENV': JSON.stringify( 'production' )
       }),
       external(),
-      resolve(),
+      resolve({
+        jsnext: true,
+        main: true,
+        browser: true
+      }),
       babel({ 
         exclude: 'node_modules/**',
         babelHelpers: 'bundled',
@@ -72,6 +76,17 @@ module.exports = [
         presets: ["react", "env", "stage-0"]
       }),
       commonjs(),
+      typescript({ tsconfig: './tsconfig.json' }),
+    ],
+  },
+  {
+    input: "server/server.ts",
+    output: {
+      file: "server/bundle.js",
+      format: "es",
+      sourcemap: "inline",
+    },
+    plugins: [
       typescript({ tsconfig: './tsconfig.json' }),
     ],
   },

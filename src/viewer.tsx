@@ -1,8 +1,14 @@
 import { renderC } from "./component";
 import { Minimap } from "./components/minimap";
 import { Vec2 } from "./system/math";
+import { Connection } from "./socket";
 
 const hasAdminRights = true;
+
+const server = new Connection();
+server.ping(47);
+server.ping(30);
+server.ping(4);
 
 renderC('test-container', <>
   <div style={{
