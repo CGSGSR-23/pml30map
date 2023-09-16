@@ -1,18 +1,60 @@
+/**
+ * 3-component vector class
+ */
 export class Vec3 {
   x: number;
   y: number;
   z: number;
 
+  /**
+   * Vector constructor
+   * @param x Vector component
+   * @param y Vector component
+   * @param z Vector component
+   */
   constructor(x: number, y: number, z: number) {
     this.x = x;
     this.y = y;
     this.z = z;
-  }
+  } /* constructor */
 
-  copy() {
+  /**
+   * Vector from object create function
+   * @param object Object to create vec3 from
+   * @returns Vector with {x, y, z} coordinates
+   */
+  static fromObject(object: { x: number, y: number, z: number }): Vec3 {
+    return new Vec3(object.x, object.y, object.z);
+  } /* fromObject */
+
+  /**
+   * From polar coordinates construction function
+   * @param azimuth Azimuthal angle
+   * @param elevation Elevation angle
+   * @param radius Distance from origin
+   * @returns Converted vector
+   */
+  static fromSpherical(azimuth: number, elevation: number, radius: number = 1): Vec3 {
+    return new Vec3(
+      radius * Math.sin(elevation) * Math.cos(azimuth),
+      radius * Math.cos(elevation),
+      radius * Math.sin(elevation) * Math.sin(azimuth)
+    );
+  } /* sphericalToCartesian */
+
+  /**
+   * vector copying function
+   * @returns Copy of this vector
+   */
+  copy(): Vec3 {
     return new Vec3(this.x, this.y, this.z);
   } /* copy */
 
+  /**
+   * Vector adding function
+   * @param rhs Right operand vector
+   * @returns Sum of this and rhs vectors
+   */
   add(rhs: Vec3): Vec3 {
     return new Vec3(
       this.x + rhs.x,
@@ -21,6 +63,11 @@ export class Vec3 {
     );
   } /* add */
 
+  /**
+   * Vector subscription function
+   * @param rhs Right operand vector
+   * @returns Difference of this and rhs vectors
+   */
   sub(rhs: Vec3): Vec3 {
     return new Vec3(
       this.x - rhs.x,
@@ -29,7 +76,12 @@ export class Vec3 {
     );
   } /* sub */
 
-  mul(rhs: Vec3 | number) {
+  /**
+   * Vector multiplication vector
+   * @param rhs Right operand vector or number
+   * @returns this multiplied by rhs
+   */
+  mul(rhs: Vec3 | number): Vec3 {
     if (rhs instanceof Vec3)
       return new Vec3(
         this.x * rhs.x,
@@ -43,10 +95,27 @@ export class Vec3 {
     );
   } /* mul */
 
+  /**
+   * Vector length square getting function
+   * @returns Length ** 2
+   */
+  length2(): number {
+    return this.x * this.x + this.y * this.y + this.z * this.z;
+  } /* length */
+
+  /**
+   * Vector length getting function
+   * @returns Length
+   */
   length(): number {
     return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z);
   } /* length */
 
+  /**
+   * Distance between vectors getting function
+   * @param rhs Vector to get distance with
+   * @returns Distance
+   */
   distance(rhs: Vec3): number {
     let
       dx = this.x - rhs.x,
@@ -56,10 +125,20 @@ export class Vec3 {
     return Math.sqrt(dx * dx + dy * dy + dz * dz);
   } /* distance */
 
+  /**
+   * Dot product getting fucntion
+   * @param rhs Right operand
+   * @returns Dot product
+   */
   dot(rhs: Vec3): number {
     return this.x * rhs.x + this.y * rhs.y + this.z * rhs.z;
   } /* dot */
 
+  /**
+   * Cross product getting function
+   * @param rhs Right hand vector
+   * @returns Result vector
+   */
   cross(rhs: Vec3): Vec3 {
     return new Vec3(
       this.y * rhs.z - rhs.y * this.z,
@@ -68,37 +147,55 @@ export class Vec3 {
     );
   } /* cross */
 
+  /**
+   * Vector normalization function
+   * @returns Vector with same direction, but 1 length
+   */
   normalize(): Vec3 {
     let len = Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z);
 
     return new Vec3(this.x / len, this.y / len, this.z / len);
   } /* normalize */
 
+  /**
+   * Negative vector getting function
+   * @returns -this
+   */
   neg(): Vec3 {
     return new Vec3(-this.x, -this.y, -this.z);
   } /* neg */
-
-  static fromSpherical(azimuth: number, elevation: number, radius: number = 1): Vec3 {
-    return new Vec3(
-      radius * Math.sin(elevation) * Math.cos(azimuth),
-      radius * Math.cos(elevation),
-      radius * Math.sin(elevation) * Math.sin(azimuth)
-    );
-  } /* sphericalToCartesian */
 } /* Vec3 */
 
 export class Vec2 {
   x: number;
   y: number;
 
+  /**
+   * 2-component constructor
+   * @param x X vector component
+   * @param y Y vector component
+   */
   constructor(x: number, y: number) {
     this.x = x;
     this.y = y;
   } /* constructor */
+  
+  /**
+   * From object create function
+   * @param object Objet to get components from
+   * @returns 2-component vector with {x, y} coordinates
+   */
+  static fromObject(object: { x: number, y: number }): Vec2 {
+    return new Vec2(object.x, object.y);
+  } /* fromObject */
 
+  /**
+   * 2-component vector copying function
+   * @returns Another vector with same components
+   */
   copy() {
-    return new Vec2(0, 0);
-  }
+    return new Vec2(this.x, this.y);
+  } /* copy */
 
   add(rhs: Vec2): Vec2 {
     return new Vec2(this.x + rhs.x, this.y + rhs.y);
@@ -163,9 +260,31 @@ export class Size {
   } /* copy */
 } /* Size */
 
+/**
+ * 4x4 matrix class
+ */
 export class Mat4 {
   m: number[];
 
+  /**
+   * Matrix constructor
+   * @param v00 0,0 matrix element
+   * @param v01 0,1 matrix element
+   * @param v02 0,2 matrix element
+   * @param v03 0,3 matrix element
+   * @param v10 1,0 matrix element
+   * @param v11 1,1 matrix element
+   * @param v12 1,2 matrix element
+   * @param v13 1,3 matrix element
+   * @param v20 2,0 matrix element
+   * @param v21 2,1 matrix element
+   * @param v22 2,2 matrix element
+   * @param v23 2,3 matrix element
+   * @param v30 3,0 matrix element
+   * @param v31 3,1 matrix element
+   * @param v32 3,2 matrix element
+   * @param v33 3,3 matrix element
+   */
   constructor(v00: number, v01: number, v02: number, v03: number,
               v10: number, v11: number, v12: number, v13: number,
               v20: number, v21: number, v22: number, v23: number,
@@ -178,6 +297,10 @@ export class Mat4 {
     ];
   } /* constructor */
 
+  /**
+   * Matrix copying function
+   * @returns Matrix with exact same data
+   */
   copy() {
     return new Mat4(
       this.m[ 0], this.m[ 1], this.m[ 2], this.m[ 3],
@@ -187,6 +310,11 @@ export class Mat4 {
     );
   } /* copy */
 
+  /**
+   * Matrix transformation function
+   * @param v Vector to transform
+   * @returns transformed vector
+   */
   transformPoint(v: Vec3): Vec3
   {
     return new Vec3(

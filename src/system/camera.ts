@@ -1,4 +1,4 @@
-import {Vec3, Mat4, Size} from "./math";
+import {Vec3, Mat4, Size} from "./linmath";
 
 export class Camera {
   // camera projection shape params
