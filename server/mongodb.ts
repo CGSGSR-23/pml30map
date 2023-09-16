@@ -8,7 +8,7 @@ function recreateID( array ) {
   return array;
 }
 
-class DataBase {
+class Database {
   nodesC; // Nodes collection
   connectionsC; // Connection collection
   varsC; // Variables collection
@@ -198,10 +198,10 @@ export class MongoDB { // Nodes data base
     var dbs = [];
 
     await Promise.all(dbNames.map(async ( name: string )=>{
-      const db = new DataBase();
-
-      await db.init(await this.mongodbConnection.db(name));
-      dbs.push({ [name]: db });
+     const db = new Database();
+ 
+     await db.init(await this.mongodbConnection.db(name));
+     dbs.push({ [name]: db });
     }));
 
     this.dbs = {};

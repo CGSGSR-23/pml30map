@@ -1,13 +1,12 @@
 import { MongoDB } from "./mongodb";
 import { MapSetInfo } from "../src/components/minimap";
-import { Vec3 } from "../src/system/math";
+import { Vec3 } from "../src/system/linmath";
 
 export interface MapInfo {
   name: string,
   dbName: string
   minimapInfo: MapSetInfo,
 }
-
 
 export function LogMsg( msgName, input, output ) {
   console.log(`<--- MESSAGE '${msgName}' --->`);
@@ -21,9 +20,11 @@ export class Client {
   accessLevel: number;
   socket;
   db;
+  dbName: string;
   mongodb: MongoDB;
   
   setupNodeRequests() {
+
     // Nodes
 
     this.socket.on("getNodeReq", async ( uri, res )=>{
@@ -122,23 +123,47 @@ export class Client {
   } /* End of 'setupNodeRequests' function */
 
   constructor( mapsConfig: MapInfo[], newMongo: MongoDB, socket, newAccessLevel: number ) {
+
     this.mongodb = newMongo;
     console.log(`Client connected with id: ${socket.id}`);
 
-    var accessLevel = newAccessLevel;
+    this.accessLevel = newAccessLevel;
     this.socket = socket;
-    console.log('AAAAAAAAAAAAAa');
-    console.log(this.mongodb.dbs);
     this.db = this.mongodb.dbs[0];
+
     if (socket.request._query.map != undefined && this.mongodb.dbs[socket.request._query.map] != undefined)
-      this.db = this.mongodb.dbs[socket.request._query.map];
+    {
+      console.log("Active map - " + socket.request._query.map);
+      this.dbName = socket.request._query.map;
+      this.db = this.mongodb.dbs[this.dbName];
+    }
+
+    // Base requests
     
-    socket.on("ping", (value, res)=>{
+    socket.on("ping", ( value, res )=>{
       res(value);
+    });
+
+    socket.on("getAccessLevelReq", (res)=>{
+      LogMsg("getAccessLevelReq", "", this.accessLevel);
+      res(this.accessLevel);
     });
 
     socket.on("disconnect", () => {
       console.log(`Client disconnected with id: ${socket.id}`);
+    });
+
+    // Minimap requests
+    socket.on("getMapSetInfoReq", ( res )=>{
+      for (let i = 0; i < mapsConfig.length; i++)
+        if (mapsConfig[i].name == this.dbName)
+        {
+          LogMsg("getMapSetInfoReq", "", mapsConfig[i]);
+          res(mapsConfig[i]);
+          return;
+        }
+      LogMsg("getMapSetInfoReq", "", {});
+      res({});
     });
 
     // Global DB requests

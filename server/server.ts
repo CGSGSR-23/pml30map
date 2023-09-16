@@ -8,7 +8,7 @@ const fileupload = require('express-fileupload');
 //const { MongoDB } = require('./mongodb.ts');
 //const { MongoDBCollectionNamespace } = require("mongodb");
 //const { allowedNodeEnvironmentFlags } = require("process");
-import { Vec2 } from "../src/system/math";
+import { Vec2 } from "../src/system/linmath";
 import { MongoDB } from "./mongodb";
 import { Client, MapInfo } from "./client";
 
@@ -25,10 +25,10 @@ const mapsConfig: MapInfo[] = [
       firstFloor: -1,
       floorCount: 3,
       defFloor: -1,
-      imgStartPos: new Vec2(0, 0),
-      imgEndPos: new Vec2(1059, 781),
-      modelStartPos: new Vec2(1, 1),
-      modelEndPos: new Vec2(1, 1),
+      imgStartPos: new Vec2(9, 31),
+      imgEndPos: new Vec2(969, 758),
+      modelStartPos: new Vec2(-31.369, -15.889),
+      modelEndPos: new Vec2(11.499, 16.445),
       floors: [
         {
           fileName: 'minimap/pml30map/f-1.png',
@@ -92,7 +92,6 @@ const pages: { page: string,  source: string, accessLevel: number }[] = [
 ];
 
 function getAccessLevel( req ): number {
-
   var accessLevel = 0;
 
   var query = req._query;
@@ -111,6 +110,7 @@ function getAccessLevel( req ): number {
   else if (query.key === adminKey)
     accessLevel = 2; // Admin
     
+  console.log('Access level: ' + accessLevel);
   return accessLevel;
 }
 
@@ -151,6 +151,7 @@ async function main() {
   
   // For test
   io.on("connection", (socket) => {
+    console.log('New connection');
     new Client(mapsConfig, DB, socket, getAccessLevel(socket.request));
   });
 

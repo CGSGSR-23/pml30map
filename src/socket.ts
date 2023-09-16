@@ -1,5 +1,5 @@
 import { io } from "socket.io-client";
-import { Vec3 } from "./system/math";
+import { Vec3 } from "./system/linmath";
 
 export class URI {
   id: Uint8Array;
@@ -19,7 +19,6 @@ export class URI {
       outA[i] = new URI(inA[i]);
     return outA;
   }
-  
 
   constructor( data ) {
     // console.log("URI in:");
@@ -40,8 +39,9 @@ export class URI {
 
 interface NodeData {
   name: string,
-  imageName: string,
-  pos: Vec3,
+  skysphere: { path: string, rotation: number },
+  position: Vec3,
+  floor: number,
 }
 
 interface ConnectionData {
@@ -55,7 +55,12 @@ export class Connection {
   constructor() {
     console.log("Connected with server");
 
-    this.socket = io();
+    this.socket = io({
+      query: {
+        key: (new URL(window.location.toString())).searchParams.get('key'),
+        map: (new URL(window.location.toString())).searchParams.get('map'),
+      },
+    });
 
     this.socket.on("connect", () => {
       console.log("SOCKET ID: " + this.socket.id);
@@ -66,8 +71,8 @@ export class Connection {
   async send( req, ...args ) {
     return new Promise((resolve) => {
       this.socket.emit(req, ...args, ( response ) => {
-        console.log("TEST OUT:");
-        console.log(response);
+        //console.log("TEST OUT:");
+        //console.log(response);
         resolve(response);
       });
     });
@@ -75,6 +80,10 @@ export class Connection {
 
   async ping( value: number ): Promise<number> {
     return this.send("ping", value) as Promise<number>;
+  }
+
+  async getAccessLevel(): Promise<number> {
+    return this.send("getAccessLevelReq") as Promise<number>;
   }
 
   async getNode( uri: URI ): Promise<NodeData> {
@@ -149,7 +158,7 @@ export class Connection {
     return this.send("getDBReq");
   }
 
-  async saveDB( outFileName ) {
+  async saveDB( outFileName: string ) {
     let dbText = JSON.stringify(await this.getDB());
   
     var a = document.createElement('a');
@@ -167,7 +176,8 @@ export class Connection {
   async addDB( db ) {
     return this.send("addDataReq", db);
   }
-  async getNearest( pos, floor ) {
+  async getNearest( pos: Vec3, floor: number ) {
     return new URI(await this.send("getNearestReq", pos, floor));
   }
 } /* Connection */
+

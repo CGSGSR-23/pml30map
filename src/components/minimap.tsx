@@ -1,5 +1,5 @@
 import React, { createRef } from 'react';
-import { Vec2 } from '../system/math';
+import { Vec2, Vec3 } from '../system/linmath';
 
 function loadImg( fileName: string ) {
   var img = new Image();
@@ -9,7 +9,7 @@ function loadImg( fileName: string ) {
   });
 } /* loadImg */
 
-interface FloorInfo {
+export interface FloorInfo {
   floorIndex: number,
   fileName: string
 }
@@ -50,6 +50,8 @@ export class Minimap extends React.Component<MinimapProps, MinimapState> {
   mouseX: number = 0;
   mouseY: number = 0;
   avatarPos: Vec2 = new Vec2(0, 0);
+  avatarFloor: number;
+  scaleCoef: number;
 
   constructor( props: MinimapProps ) {
     super(props);
@@ -59,7 +61,20 @@ export class Minimap extends React.Component<MinimapProps, MinimapState> {
       curFloorInd: props.mapInfo.defFloor,
     };
 
-    props.mapInfo.floors.map(async (f, i)=>{
+    props.mapInfo.imgStartPos = new Vec2(props.mapInfo.imgStartPos.x, props.mapInfo.imgStartPos.y);
+    props.mapInfo.imgEndPos = new Vec2(props.mapInfo.imgEndPos.x, props.mapInfo.imgEndPos.y);
+    props.mapInfo.modelStartPos = new Vec2(props.mapInfo.modelStartPos.x, props.mapInfo.modelStartPos.y);
+    props.mapInfo.modelEndPos = new Vec2(props.mapInfo.modelEndPos.x, props.mapInfo.modelEndPos.y);
+
+    this.scaleCoef = props.mapInfo.imgEndPos.sub(props.mapInfo.imgStartPos).length() /
+                     props.mapInfo.modelEndPos.sub(props.mapInfo.modelStartPos).length();
+    console.log("Coef");
+    console.log(props.mapInfo.modelEndPos.sub(props.mapInfo.modelStartPos).length());
+    console.log(this.scaleCoef);
+
+    //for (let i = 0; i < props.mapInfo.floorCount; i++)
+    //  this.floorImgs[props.mapInfo.floors[i].floorIndex] = loadImg(props.mapInfo.floors[i].fileName);
+    props.mapInfo.floors.map(async (f)=>{
       this.floorImgs[f.floorIndex] = loadImg(f.fileName);
     });
   }
@@ -88,7 +103,9 @@ export class Minimap extends React.Component<MinimapProps, MinimapState> {
 
     let img = await this.floorImgs[this.state.curFloorInd];
     ctx.drawImage(img, this.mapOffset.x, this.mapOffset.y, img.width * this.mapScale, img.height * this.mapScale);
-    this.drawAvatar(ctx, this.avatarPos);
+
+    if (this.avatarFloor == this.state.curFloorInd)
+      this.drawAvatar(ctx, this.avatarPos);
   }
 
   componentDidMount(): void {
@@ -101,9 +118,22 @@ export class Minimap extends React.Component<MinimapProps, MinimapState> {
     });
   }
 
-  setAvatar( newPos: Vec2 ) {
-    this.avatarPos = newPos;
+  setAvatar( pos: Vec2, floor: number) {
+    this.avatarPos = pos;
+    this.avatarFloor = floor;
     this.updateCanvas();
+  }
+
+  toWorld( pos: Vec2, floorIndex: number ): Vec3 {
+    let hPos = (new Vec2(pos.x, pos.y)).sub(this.props.mapInfo.imgStartPos).mul(1 / this.scaleCoef).add(this.props.mapInfo.modelStartPos);
+
+    return new Vec3(hPos.x, floorIndex, hPos.y);
+  }
+
+  toMap( pos: Vec3 ): Vec2 {
+    let hPos = new Vec2(pos.x, pos.z);
+
+    return hPos.sub(this.props.mapInfo.modelStartPos).mul(this.scaleCoef).add(this.props.mapInfo.imgStartPos)
   }
 
   render() {
