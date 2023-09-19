@@ -6,7 +6,35 @@ import { Connection } from "../socket";
 import { URI } from "../socket";
 import { queryToStr } from "./support";
 import { System, Unit } from "../system/system";
-import { Target } from "../system/render_resources";
+import { Target, Topology, Vertex, Material, Model } from "../system/render_resources";
+
+class Triangle implements Unit {
+  doSuicide: boolean;
+  model: Model;
+
+  /**
+   * Unit create function
+   * @param system System
+   * @returns Promise of new triangle unit
+   */
+  static async create(system: System): Promise<Triangle> {
+    let unit: Triangle = new Triangle();
+    let tpl: Topology = Topology.sphere(0.1);
+    let material: Material = await Material.create(system.gl, "bin/shaders/model");
+
+    unit.model = Model.fromTopology(system.gl, tpl, material);
+
+    return unit;
+  } /* create */
+
+  /**
+   * Response function
+   * @param system System reference
+   */
+  response(system: System): void {
+    system.drawModel(this.model);
+  } /* response */
+} /* class Triangle */
 
 class FrameCounter implements Unit {
   doSuicide: boolean;
@@ -36,7 +64,7 @@ interface NodeData {
   name: string;
   skysphere: string;
   floor: number;
-}
+} /* NodeData */
 
 interface NodeSettingsProps {
   data: NodeData;
@@ -44,16 +72,15 @@ interface NodeSettingsProps {
   onDeleteNodeCallBack: ()=>void,
   onSave: ( newData: NodeData )=>void,
   onClose: ()=>void,
-}
+} /* NodeSettingsProps */
 
 interface NodeSettingsState {
   nameRef: React.MutableRefObject<any>;
   skysphereRef: React.MutableRefObject<any>;
   floorRef: React.MutableRefObject<any>;
-}
+} /* NodeSettingsState */
 
 class NodeSettings extends React.Component<NodeSettingsProps, NodeSettingsState> {
-
   constructor( props: NodeSettingsProps ) {
     super(props);
     this.state = {
@@ -106,7 +133,7 @@ class NodeSettings extends React.Component<NodeSettingsProps, NodeSettingsState>
     this.state.skysphereRef.current.value = this.props.data.skysphere;
     this.state.floorRef.current.value = this.props.data.floor;
   }
-}
+} /* NodeSettings */
 
 interface EditorProps {
   socket: Connection;
@@ -127,18 +154,21 @@ interface QueryData {
   map?: string;
 }
 
+/**
+ * Editor class
+ */
 export class Editor extends React.Component<EditorProps, EditorState> {
   system: System = null;
   upperFloor: number = 0;
   curQuery: QueryData = {};
-  
+
   asyncSetState( newState: any ) {
     return new Promise<void>((resolve) => {
         this.setState(newState, ()=>{
           resolve();
         });
       });
-  }
+  } /* asyncSetState */
 
   getQuery(): QueryData {
     const urlParams = new URLSearchParams(window.location.search);
@@ -151,11 +181,11 @@ export class Editor extends React.Component<EditorProps, EditorState> {
     });
  
     return out as QueryData;
-  }
+  } /* getQuery */
 
   updateQuery() {
     history.pushState(this.curQuery, "", '?' + queryToStr(this.curQuery));
-  }
+  } /* updateQuery */
   
   constructor( props: EditorProps ) {
     super(props);
@@ -168,12 +198,12 @@ export class Editor extends React.Component<EditorProps, EditorState> {
       showNodeSettings: true,
     };
     console.log('Viewer construcor');
-    window.addEventListener("resize", this.resize);
+    window.addEventListener("resize", () => {this.resize();});
   } /* End of 'cosntructor' function */
 
   async goToNode( uri: URI ) {
     
-  }
+  } /* goToNode */
   
   resize() {
     this.system.canvas.width = this.state.canvasRef.current.clientWidth;
@@ -184,7 +214,6 @@ export class Editor extends React.Component<EditorProps, EditorState> {
   } /* resize */
 
   render() {
-    
     return (
       <>
         <div style={{
@@ -228,14 +257,12 @@ export class Editor extends React.Component<EditorProps, EditorState> {
     this.system = await System.create(this.state.canvasRef.current);
     this.resize();
 
-    // this.system.addUnit(new FrameCounter());
+    this.system.addUnit(await Triangle.create(this.system));
 
     this.system.runMainLoop();
-  }
+  } /* systemInit */
 
   async componentDidMount() {
-    // System init
-    console.log("system init");
     console.log(this.state.canvasRef.current);
     this.systemInit();
 
@@ -279,6 +306,6 @@ export class Editor extends React.Component<EditorProps, EditorState> {
         }
       </>)
     });
-  }
+  } /* componentDidMount */
 } /* End of 'Viewer' class */
 

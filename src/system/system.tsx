@@ -4,7 +4,7 @@ import {Vec2, Vec3, Mat4, Size} from "./linmath";
 import {Shader, Target, Texture, UniformBuffer, Topology, Model, Material} from "./render_resources";
 
 /**
- * @brief Unit interface
+ * Unit interface
  */
 export interface Unit {
   doSuicide: boolean;
@@ -100,7 +100,7 @@ export class System {
     let result = new System(canvas);
     let gl = result.gl;
 
-    result.target = Target.create(gl, 3);
+    result.target = Target.create(gl, 2);
     result.defaultTarget = Target.createDefault(gl);
     result.fsMaterial = await Material.create(gl, "bin/shaders/target");
     result.fsPrimitive = Model.fromTopology(gl, Topology.square(), result.fsMaterial);

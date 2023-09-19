@@ -331,8 +331,9 @@ class RenderTarget implements Target {
       drawBuffers.push(gl.COLOR_ATTACHMENT0 + i);
     }
 
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, result.depthAttachment, 0);
     result.depthAttachment = Texture.create(gl, result.width, result.height, TextureComponentType.DEPTH, 1);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, result.depthAttachment.tex, 0);
+
     gl.drawBuffers(drawBuffers);
 
     return result;
@@ -369,7 +370,7 @@ class RenderTarget implements Target {
   
     const colorClearValue = [0, 1, 0, 1];
     for (let i = 0, num = this.attachments.length; i < num; i++)
-      gl.clearBufferiv(gl.COLOR, i, colorClearValue);
+      gl.clearBufferuiv(gl.COLOR, i, colorClearValue);
     gl.clearBufferfv(gl.DEPTH, 0, [1]);
 
     gl.viewport(0, 0, this.width, this.height);
@@ -445,7 +446,7 @@ export namespace Target {
 export class Material {
   gl: WebGL2RenderingContext;
   shader: Shader;
-  resources: ShaderBindable[];
+  resources: ShaderBindable[] = [];
 
   static async create(gl: WebGL2RenderingContext, shaderPath: string): Promise<Material> {
     let result = new Material();
@@ -592,7 +593,7 @@ export class Topology {
     return tpl;
   } /* cylinder */
 
-  static sphere(radius: number, width: 24, height: 24): Topology {
+  static sphere(radius: number, width: number = 24, height: number = 24): Topology {
     let tpl = Topology.indexedPlane(width, height);
 
     for (let y = 0; y < height; y++) {
