@@ -171,13 +171,13 @@ export class Minimap extends React.Component<MinimapProps, MinimapState> {
               this.props.callbacks.onclick(this, this.state.curFloorInd, pos);
             }
           }}/>
-          <div className="flexColumn">
+          {this.props.mapInfo.floorCount > 1 && <div className="flexColumn">
             {this.props.mapInfo.floors.map(( f: FloorInfo )=>{
               return (<input type="button" className={this.state.curFloorInd == f.floorIndex ? "active" : ""} value={f.floorIndex} onClick={()=>{
                 this.switchToFloor(f.floorIndex);
               }}/>);
             })}
-          </div>
+          </div>}
         </div>
       </div>
     );

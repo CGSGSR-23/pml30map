@@ -2,10 +2,12 @@ import { MongoDB } from "./mongodb";
 import { MapSetInfo } from "../src/components/minimap";
 import { Vec3 } from "../src/system/linmath";
 
+const defaultMapName = 'pml30map';
+
 export interface MapInfo {
-  name: string,
-  dbName: string
-  minimapInfo: MapSetInfo,
+  name: string;
+  dbName: string;
+  minimapInfo: MapSetInfo;
 }
 
 export function LogMsg( msgName, input, output ) {
@@ -129,14 +131,11 @@ export class Client {
 
     this.accessLevel = newAccessLevel;
     this.socket = socket;
-    this.db = this.mongodb.dbs[0];
 
-    if (socket.request._query.map != undefined && this.mongodb.dbs[socket.request._query.map] != undefined)
-    {
-      console.log("Active map - " + socket.request._query.map);
-      this.dbName = socket.request._query.map;
-      this.db = this.mongodb.dbs[this.dbName];
-    }
+    // Map
+    this.dbName = socket.request._query.map != undefined ? this.mongodb.dbs[socket.request._query.map] != undefined ? socket.request._query.map : defaultMapName : defaultMapName;
+    console.log("Active map - " + this.dbName);
+    this.db = this.mongodb.dbs[this.dbName];
 
     // Base requests
     
@@ -149,12 +148,20 @@ export class Client {
       res(this.accessLevel);
     });
 
+    socket.on("getAllMapsReq", (res)=>{
+      var maps: string[] = mapsConfig.map((e)=>{ return e.name; });
+      LogMsg("getAllMapsReq", "", maps);
+      res(maps);
+    });
+
     socket.on("disconnect", () => {
       console.log(`Client disconnected with id: ${socket.id}`);
     });
 
     // Minimap requests
     socket.on("getMapSetInfoReq", ( res )=>{
+
+      console.log(this.dbName);
       for (let i = 0; i < mapsConfig.length; i++)
         if (mapsConfig[i].name == this.dbName)
         {

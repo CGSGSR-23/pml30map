@@ -11,6 +11,7 @@ const fileupload = require('express-fileupload');
 import { Vec2 } from "../src/system/linmath";
 import { MongoDB } from "./mongodb";
 import { Client, MapInfo } from "./client";
+import * as fs from "fs";  
 
 const app = express();
 app.use(morgan("combined"));
@@ -21,7 +22,7 @@ const mapsConfig: MapInfo[] = [
     name: "pml30map",
     dbName: "pml30map",
     minimapInfo: {
-      name: 'minimap',
+      name: 'PML 30',
       firstFloor: -1,
       floorCount: 3,
       defFloor: -1,
@@ -56,7 +57,28 @@ const mapsConfig: MapInfo[] = [
         },
       ],
     },
+  },
+  {
+    name: "camp23map",
+    dbName: "camp23map",
+    minimapInfo: {
+      name: 'Sum 23 camp',
+      firstFloor: 0,
+      floorCount: 1,
+      defFloor: 0,
+      imgStartPos: new Vec2(198, 40),
+      imgEndPos: new Vec2(527, 850),
+      modelStartPos: new Vec2(-28.336, -34.717),
+      modelEndPos: new Vec2(-7.370, 17.2),
+      floors: [
+        {
+          fileName: 'minimap/camp23map/f0.png',
+          floorIndex: 0,
+        },
+      ],
+    },
   }
+  
 ];
 
 //app.use('/bin/models/worldmap', (req, res, next )=>{
@@ -65,7 +87,8 @@ const mapsConfig: MapInfo[] = [
 
 app.use('/bin', express.static("../bin"));
 
-const enableKeys: number = 1; // 0 - no check
+const enableKeys: number = 2;
+                      // 0 - no check
                       // 1- simple 404 page
                       // 2 - redirect to rickroll
 
@@ -149,6 +172,8 @@ async function main() {
 
   await DB.init("mongodb+srv://doadmin:i04J9b2t1X853Cuy@db-mongodb-pml30-75e49c39.mongo.ondigitalocean.com/admin?tls=true&authSource=admin", mapsConfig.map((e)=>{ return e.dbName; }));
   
+  //const mapsInfo = fs.read("/etc/passwd", { encoding: "utf-8" });
+
   // For test
   io.on("connection", (socket) => {
     console.log('New connection');
