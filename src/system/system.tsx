@@ -1,6 +1,7 @@
+import * as React from "react";
 import {Camera} from "./camera";
 import {Vec2, Vec3, Mat4, Size} from "./linmath";
-import {Shader, Target, Texture, UniformBuffer, Topology, Primitive, Material} from "./render_resources";
+import {Shader, Target, Texture, UniformBuffer, Topology, Model, Material} from "./render_resources";
 
 /**
  * @brief Unit interface
@@ -70,11 +71,14 @@ export class System {
   canvas: HTMLCanvasElement;
   gl: WebGL2RenderingContext;
   doRun: boolean = true;
-  mainCycleTimeout: NodeJS.Timeout;
+  mainLoopTimeout: NodeJS.Timeout;
+  units: Unit[] = [];
 
+  renderQueue: Model[] = [];
+  defaultTarget: Target;
   target: Target;
   fsMaterial: Material;
-  fsPrimitive: Primitive;
+  fsPrimitive: Model;
 
   /**
    * System constructor. Basically, should be only one system on client
@@ -82,31 +86,83 @@ export class System {
    */
   constructor(canvas: HTMLCanvasElement) {
     let gl = canvas.getContext("webgl2") as WebGL2RenderingContext;
+
+    this.canvas = canvas;
     this.gl = gl;
-
-    this.target = Target.create(gl, 3);
-    // this.fsPrimitive.material = 
-    this.fsPrimitive = Primitive.fromTopology(gl, Topology.square());
-
   } /* constructor */
 
   /**
-   * Main cycle running function
+   * System create function
+   * @param canvas Canvas to create system on
+   * @returns Promise of system
    */
-  stopMainCycle() {
-    clearTimeout(this.mainCycleTimeout);
-  } /* stopMainCycle */
+  static async create(canvas: HTMLCanvasElement): Promise<System> {
+    let result = new System(canvas);
+    let gl = result.gl;
+
+    result.target = Target.create(gl, 3);
+    result.defaultTarget = Target.createDefault(gl);
+    result.fsMaterial = await Material.create(gl, "bin/shaders/target");
+    result.fsPrimitive = Model.fromTopology(gl, Topology.square(), result.fsMaterial);
+
+    result.fsMaterial.resources = [...result.target.getAttachments()];
+
+    return result;
+  } /* create */
 
   /**
-   * Main cycle running function
+   * Model displaying function
+   * @param model Model create function
    */
-  runMainCycle() {
+  drawModel(model: Model) {
+    this.renderQueue.push(model);
+  } /* drawModel */
+
+  /**
+   * Unit adding function
+   * @param unit Unit to add
+   */
+  addUnit(unit: Unit) {
+    this.units.push(unit);
+  } /* addUnit */
+
+  /**
+   * Main loop running function
+   */
+  stopMainLoop() {
+    this.doRun = false;
+    clearInterval(this.mainLoopTimeout);
+  } /* stopMainLoop */
+
+  /**
+   * Main loop running function
+   */
+  runMainLoop() {
     let gl = this.gl;
+    this.doRun = true;
 
-    this.mainCycleTimeout = setInterval(() => {
+    this.mainLoopTimeout = setInterval(() => {
+      for (let unit of this.units)
+        unit.response(this);
 
+      let newUnits: Unit[] = [];
+      for (let unit of this.units)
+        if (!unit.doSuicide)
+          newUnits.push(unit);
+      this.units = newUnits;
+
+      this.target.bind();
+
+      for (let model of this.renderQueue)
+        model.draw(null);
+      this.renderQueue = [];
+      gl.finish();
+
+      this.defaultTarget.bind();
+      this.fsPrimitive.draw(null);
+      gl.finish();
     });
-  } /* runMainCycle */
+  } /* runMainLoop */
 } /* System */
 
 /* system.ts */
