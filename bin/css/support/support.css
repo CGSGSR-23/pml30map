@@ -1,0 +1,33 @@
+@import 'button.css';
+/*
+:root {
+  --color1: #05243f;
+  --color2: #365066;
+  --color3: #380c0c;
+  --color4: #925151;
+  --color5: #11250c;
+  --color6: #6da55f;
+  --color1-old: #5C7DDB;
+  --color2-old: #081742;
+  --color3-old: #5797A8;
+  --color4-old: #B3988A;
+  --color5-old: #DB755C;
+  --bg-main-color: #ffffff;
+  --bg-sub-color: #264055;
+  --sub-color: #6291a7;
+  --sub2-color:#61CE70;
+
+  --shadow-color: #02020218;
+  --lighting-color: #ffffff2a;
+}
+*/
+
+hr {
+  margin: 1em 0;
+  padding: 0;
+  height: 0;
+  border: none;
+  border-top: 2px dashed var(--color3);
+}
+  
+

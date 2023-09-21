@@ -1,13 +1,6 @@
 import React, { createRef } from 'react';
 import { Vec2, Vec3 } from '../system/linmath';
-
-function loadImg( fileName: string ) {
-  var img = new Image();
-  img.src = "./bin/imgs/" + fileName;
-  return new Promise( async (resolve) => {
-    img.onload = ()=>{ resolve(img); };
-  });
-} /* loadImg */
+import { loadImg } from './support';
 
 export interface FloorInfo {
   floorIndex: number,

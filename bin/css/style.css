@@ -1,6 +1,8 @@
+@import './support/support.css';
 @import './support/layout.css';
-@import './support/ui.css';
-
+@import './support/range.css';
+@import 'support/text.css';
+/*
 :root {
   --bg-color: rgba(205, 205, 205, 0.631);
   --sub-bg-color: rgba(101, 101, 101, 0.631);
@@ -9,6 +11,7 @@
   --text-color: white;
   --acitve-text-color: black;
 }
+*/
 
 body {
   font-family: 'consolas';
@@ -28,15 +31,22 @@ h1 {
 }
 
 h2 {
-  padding-left: 0.7em;
+  padding-left: 0.4em;
   margin: 0;
 }
 
 h3 {
-  padding-left: 0.7em;
+  padding-left: 0.4em;
   margin: 0;
 }
 
 .description {
   font-size: 0.7em;
+}
+
+
+div.box {
+  background-color: var(--div-bg-color);
+  border: 0.2em solid var(--div-br-color);
+  padding: 0.5em;
 }

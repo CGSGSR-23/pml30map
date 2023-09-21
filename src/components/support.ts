@@ -12,3 +12,12 @@ export function queryToStr( obj: any ): string {
 
   return queryStr;
 } /* End of 'queryToStr' function */
+
+
+export function loadImg( fileName: string ) {
+  var img = new Image();
+  img.src = "./bin/imgs/" + fileName;
+  return new Promise( async (resolve) => {
+    img.onload = ()=>{ resolve(img); };
+  });
+} /* loadImg */

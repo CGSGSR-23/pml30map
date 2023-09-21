@@ -5,6 +5,7 @@ import React, { createRef } from "react";
 import { Connection } from "../socket";
 import { URI } from "../socket";
 import { queryToStr } from "./support";
+import { System, Unit } from "../system/system";
 
 interface ViewerProps {
   accessLevel: number;
@@ -26,6 +27,7 @@ interface QueryData {
 
 export class Viewer extends React.Component<ViewerProps, ViewerState> {
   curQuery: QueryData = {};
+  system: System = null;
   
   asyncSetState( newState: any ) {
     return new Promise<void>((resolve) => {
@@ -77,6 +79,14 @@ export class Viewer extends React.Component<ViewerProps, ViewerState> {
     this.updateQuery();
   }
 
+  resize() {
+    this.system.canvas.width = this.state.canvasRef.current.clientWidth;
+    this.system.canvas.height = this.state.canvasRef.current.clientHeight;
+
+    this.system.defaultTarget.resize(this.system.canvas.width, this.system.canvas.height);
+    this.system.target.resize(this.system.canvas.width, this.system.canvas.height);
+  } /* resize */
+
   render() {
     return (
       <>
@@ -88,14 +98,11 @@ export class Viewer extends React.Component<ViewerProps, ViewerState> {
           right: 0,
           background: '#05243f'
         }}>
-          <canvas ref={this.state.canvasRef}></canvas>
+          <canvas ref={this.state.canvasRef} style={{width: '100%', height: '100%'}} onContextMenu={(event) => { event.preventDefault(); }}/>
         </div>
-        <div style={{
+        <div className="box" style={{
           zIndex: 2,
-          position: 'absolute',
-          backgroundColor: 'var(--bg-color)',
-          border: '0.2em solid var(--bg-color)',
-          padding: '0.5em',
+          position: 'absolute',          
         }}>
           <h2>Minimap window</h2>
           {this.state.minimapJSX}
@@ -108,12 +115,9 @@ export class Viewer extends React.Component<ViewerProps, ViewerState> {
             }}/>
           </>}
         </div>
-        <div style={{
+        <div className="box" style={{
           zIndex: 3,
           position: 'relative',
-          backgroundColor: 'var(--bg-color)',
-          border: '0.2em solid var(--bg-color)',
-          padding: '0.5em',
           float: 'right',
         }}>
           <h2>Other maps</h2>
@@ -123,7 +127,18 @@ export class Viewer extends React.Component<ViewerProps, ViewerState> {
     );
   } /* End of 'render' function */
 
-  async loadAsync() {
+  async systemInit() {
+    this.system = await System.create(this.state.canvasRef.current);
+    this.resize();
+
+    // this.system.addUnit(new FrameCounter());
+
+    this.system.runMainLoop();
+  }
+
+  async componentDidMount() {
+    this.systemInit();
+
     const allMaps = (await this.props.socket.send('getAllMapsReq')) as string[];
     const map: MapInfo = (await this.props.socket.send("getMapSetInfoReq")) as MapInfo;
     
@@ -159,12 +174,6 @@ export class Viewer extends React.Component<ViewerProps, ViewerState> {
     if (this.curQuery.node_uri != undefined)
       this.goToNode(this.state.minimapRef.current, new URI(this.curQuery.node_uri));
 
-  }
-
-  componentDidMount() {
-    this.loadAsync();
-    // Get context
-    // System init
   }
 } /* End of 'Viewer' class */
 

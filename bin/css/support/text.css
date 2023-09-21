@@ -1,0 +1,10 @@
+@import 'colors.css';
+
+input[type=text] {
+  margin: 0.2em;
+  --text-bg-color: var(--shadow-color);
+  --text-br-color: var(--lighting3-color);
+
+  background: var(--text-bg-color);
+  border: none;
+}
