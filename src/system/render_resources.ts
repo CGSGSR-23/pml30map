@@ -1,4 +1,4 @@
-import {Vec2, Vec3, Mat4} from "./linmath";
+import {Vec2, Vec3, Vec4, Mat4} from "./linmath";
 
 /**
  * Shader-bindable object interface
@@ -131,12 +131,12 @@ class TextureFormatData {
         break;
 
       case TextureComponentType.BYTE:
-        const byteFormats = [gl.RED_INTEGER, gl.RG_INTEGER, gl.RGB_INTEGER, gl.RGBA_INTEGER];
+        const byteFormats = [gl.RED, gl.RG, gl.RGB, gl.RGBA];
         const byteInternals = [gl.R8, gl.RG8, gl.RGB8, gl.RGBA8];
 
         this.format = byteFormats[componentCount - 1];
         this.internalFormat = byteInternals[componentCount - 1];
-        this.componentType = gl.BYTE;
+        this.componentType = gl.UNSIGNED_BYTE;
         break;
 
         case TextureComponentType.UINT:
@@ -195,7 +195,11 @@ export class Texture implements ShaderBindable {
     result.tex = gl.createTexture();
 
     gl.bindTexture(gl.TEXTURE_2D, result.tex);
-    gl.texImage2D(gl.TEXTURE_2D, 0, result.format.internalFormat, width, height, 0, result.format.format, result.format.componentType, data);
+    if (data === null)
+      gl.texImage2D(gl.TEXTURE_2D, 0, result.format.internalFormat, width, height, 0, result.format.format, result.format.componentType, null);
+    else {
+      gl.texImage2D(gl.TEXTURE_2D, 0, result.format.internalFormat, result.format.format, result.format.componentType, data);
+    }
 
     return result;
   } /* createTexture */
@@ -226,10 +230,13 @@ export class Texture implements ShaderBindable {
    * @param height New texture height
    */
   resize(width: number, height: number) {
+    let gl = this.gl;
+
     this.width = width;
     this.height = height;
 
-    this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.format.internalFormat, width, height, 0, this.format.format, this.format.componentType, null);
+    gl.bindTexture(gl.TEXTURE_2D, this.tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, this.format.internalFormat, width, height, 0, this.format.format, this.format.componentType, null);
   } /* resize */
 
   /**
@@ -238,12 +245,14 @@ export class Texture implements ShaderBindable {
    * @param block Block to bind object to shader to
    */
   bind(program: Shader, block: number): void {
-    this.gl.activeTexture(this.gl.TEXTURE0 + block);
-    this.gl.bindTexture(this.gl.TEXTURE_2D, this.tex);
+    let gl = this.gl;
 
-    let location = this.gl.getUniformLocation(program.program, `Texture${block}`);
+    gl.activeTexture(gl.TEXTURE0 + block);
+    gl.bindTexture(gl.TEXTURE_2D, this.tex);
+
+    let location = gl.getUniformLocation(program.program, `Tex${block}`);
     // No safety check to speedup
-    this.gl.uniform1i(location, block);
+    gl.uniform1i(location, block);
   } /* bind */
 } /* class Texture */
 
@@ -286,6 +295,8 @@ export interface Target {
    */
   bind(): void;
 
+  getAttachmentValue(attachmentIndex: number, x: number, y: number): Vec4;
+
   /**
    * Attachment array getting function
    * @returns Attachment texture array
@@ -301,6 +312,7 @@ class RenderTarget implements Target {
   framebuffer: WebGLFramebuffer;
   attachments: Texture[];
   depthAttachment: Texture;
+  drawBuffers: number[] = [];
 
   width: number;
   height: number;
@@ -322,42 +334,54 @@ class RenderTarget implements Target {
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, result.framebuffer);
 
-    let drawBuffers: number[] = [];
     result.attachments = [];
     for (let i = 0; i < colorComponentNumber; i++) {
-      result.attachments.push(Texture.create(gl, result.width, result.height, TextureComponentType.UINT, 4));
+      result.attachments.push(Texture.create(gl, result.width, result.height, TextureComponentType.HALF_FLOAT, 4));
       gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + i, gl.TEXTURE_2D, result.attachments[i].tex, 0);
 
-      drawBuffers.push(gl.COLOR_ATTACHMENT0 + i);
+      result.drawBuffers.push(gl.COLOR_ATTACHMENT0 + i);
     }
 
     result.depthAttachment = Texture.create(gl, result.width, result.height, TextureComponentType.DEPTH, 1);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, result.depthAttachment.tex, 0);
 
-    gl.drawBuffers(drawBuffers);
-
     return result;
   } /* create */
-  
+
+  getAttachmentValue(attachmentIndex: number, x: number, y: number): Vec4 {
+    let gl = this.gl;
+
+    let dst = new Float32Array(4);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
+    if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) == gl.FRAMEBUFFER_COMPLETE) {
+      gl.readPixels(x, this.attachments[attachmentIndex].height - y, 1, 1, gl.RGBA, gl.HALF_FLOAT, dst);
+    }
+
+    return new Vec4(dst[0], dst[1], dst[2], dst[3]);
+  } /* getAttachmentValue */
+
   /**
    * Target resize function
    * @param width  New buffer width
    * @param height New buffer height
   */
- resize(width: number, height: number) {
+  resize(width: number, height: number) {
     let gl = this.gl;
-    
+
     this.width = width;
     this.height = height;
-    
+
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
-    
+
     for (let i = 0, num = this.attachments.length; i < num; i++) {
       this.attachments[i].resize(width, height);
       gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + i, gl.TEXTURE_2D, this.attachments[i].tex, 0);
     }
     this.depthAttachment.resize(width, height);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, this.depthAttachment.tex, 0);
+
+    gl.drawBuffers(this.drawBuffers);
   } /* resize */
 
   /**
@@ -367,13 +391,13 @@ class RenderTarget implements Target {
     let gl = this.gl;
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
-  
-    const colorClearValue = [0, 1, 0, 1];
-    for (let i = 0, num = this.attachments.length; i < num; i++)
-      gl.clearBufferuiv(gl.COLOR, i, colorClearValue);
-    gl.clearBufferfv(gl.DEPTH, 0, [1]);
-
     gl.viewport(0, 0, this.width, this.height);
+
+    for (let i = 0, num = this.attachments.length; i < num; i++)
+      gl.clearBufferfv(gl.COLOR, i, [0, 1, 0, 1]);
+    gl.clearBufferfi(gl.DEPTH_STENCIL, 0, 1, 0);
+
+    gl.drawBuffers(this.drawBuffers);
   } /* bind */
 
   /**
@@ -407,6 +431,11 @@ class DefaultTarget implements Target {
     this.width = width;
     this.height = height;
   } /* resize */
+
+  getAttachmentValue(attachmentIndex: number, x: number, y: number): Vec4 {
+    return new Vec4(0, 0, 0, 0);
+  } /* getAttachmentValue */
+
 
   /**
    * Target binding function
@@ -471,8 +500,9 @@ export class Material {
    */
   apply(blockOffset: number = 0) {
     this.shader.useProgram();
-    for (let i = 0, num = this.resources.length; i < num; i++)
+    for (let i = 0, num = this.resources.length; i < num; i++) {
       this.resources[i].bind(this.shader, i + blockOffset);
+    }
   } /* apply */
 } /* Material */
 
@@ -501,7 +531,7 @@ export class Vertex {
     return new Vertex(new Vec3(px, py, pz), new Vec2(ptu, ptv), new Vec3(pnx, pny, pnz));
   } /* fromCoord */
 
-  static formVectors(position: Vec3, texCoord: Vec2, normal: Vec3): Vertex {
+  static fromVectors(position: Vec3, texCoord: Vec2, normal: Vec3): Vertex {
     return new Vertex(position.copy(), texCoord.copy(), normal.copy());
   } /* fromVertex */
 } /* Vertex */
@@ -509,7 +539,7 @@ export class Vertex {
 /**
  * Topology type class
  */
-enum TopologyType {
+export enum TopologyType {
   LINES          = WebGL2RenderingContext.LINES,
   LINE_STRIP     = WebGL2RenderingContext.LINE_STRIP,
   LINE_LOOP      = WebGL2RenderingContext.LINE_LOOP,
@@ -530,10 +560,10 @@ export class Topology {
   static square(): Topology {
     let tpl = new Topology();
     tpl.vtx = [
-      Vertex.fromCoord(-1, -1, 0, 0, 0),
-      Vertex.fromCoord(-1,  1, 0, 0, 1),
-      Vertex.fromCoord( 1, -1, 0, 1, 0),
-      Vertex.fromCoord( 1,  1, 0, 1, 1)
+      Vertex.fromCoord(-1, -1, 0,   0, 0,   0, 1, 0),
+      Vertex.fromCoord(-1,  1, 0,   0, 1,   0, 1, 0),
+      Vertex.fromCoord( 1, -1, 0,   1, 0,   0, 1, 0),
+      Vertex.fromCoord( 1,  1, 0,   1, 1,   0, 1, 0),
     ];
 
     tpl.idx = [0, 1, 2, 3];
@@ -710,7 +740,7 @@ export class Topology {
       result[i++] = vt.position.z;
 
       result[i++] = vt.texCoord.x;
-      result[i++] = vt.texCoord.x;
+      result[i++] = vt.texCoord.y;
 
       result[i++] = vt.normal.x;
       result[i++] = vt.normal.y;
@@ -756,33 +786,15 @@ class SingleMeshPrimitive {
     result.material = material;
 
     result.vertexArray = gl.createVertexArray();
-
     gl.bindVertexArray(result.vertexArray);
-    let positionLocation = gl.getAttribLocation(result.material.shader.program, "inPosition");
-    if (positionLocation != -1) {
-      gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 8 * 4, 0);
-      gl.enableVertexAttribArray(positionLocation);
-    }
-
-    let texCoordLocation = gl.getAttribLocation(result.material.shader.program, "inTexCoord");
-    if (texCoordLocation != -1) {
-      gl.vertexAttribPointer(texCoordLocation, 3, gl.FLOAT, false, 8 * 4, 3 * 4);
-      gl.enableVertexAttribArray(texCoordLocation);
-    }
-
-    let normalLocation = gl.getAttribLocation(result.material.shader.program, "inNormal");
-    if (normalLocation != -1) {
-      gl.vertexAttribPointer(normalLocation, 3, gl.FLOAT, false, 8 * 4, 5 * 4);
-      gl.enableVertexAttribArray(normalLocation);
-    }
 
     /* create vertex buffer */
     result.vertexBuffer = gl.createBuffer();
     result.vertexNumber = topology.vtx.length;
     gl.bindBuffer(gl.ARRAY_BUFFER, result.vertexBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, topology.toArray(), gl.STATIC_DRAW);
-    /* create index buffer */
 
+    /* create index buffer */
     if (topology.idx.length == 0) {
       result.indexBuffer = null;
       result.indexNumber = 0;
@@ -791,6 +803,25 @@ class SingleMeshPrimitive {
       result.indexNumber = topology.idx.length;
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, result.indexBuffer);
       gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint32Array(topology.idx), gl.STATIC_DRAW);
+    }
+
+
+    let positionLocation = gl.getAttribLocation(result.material.shader.program, "inPosition");
+    if (positionLocation != -1) {
+      gl.enableVertexAttribArray(positionLocation);
+      gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 8 * 4, 0);
+    }
+    
+    let texCoordLocation = gl.getAttribLocation(result.material.shader.program, "inTexCoord");
+    if (texCoordLocation != -1) {
+      gl.enableVertexAttribArray(texCoordLocation);
+      gl.vertexAttribPointer(texCoordLocation, 2, gl.FLOAT, false, 8 * 4, 3 * 4);
+    }
+
+    let normalLocation = gl.getAttribLocation(result.material.shader.program, "inNormal");
+    if (normalLocation != -1) {
+      gl.enableVertexAttribArray(normalLocation);
+      gl.vertexAttribPointer(normalLocation, 3, gl.FLOAT, false, 8 * 4, 5 * 4);
     }
 
     return result;
@@ -805,17 +836,15 @@ class SingleMeshPrimitive {
 
     this.material.apply(1);
 
-    if (cameraBuffer !== null) {
+    if (cameraBuffer !== null)
       cameraBuffer.bind(this.material.shader, 0);
-    }
 
     gl.bindVertexArray(this.vertexArray);
-
-    if (this.indexBuffer !== null) {
-      gl.drawElements(this.topologyType, this.indexNumber, gl.UNSIGNED_INT, 0);
-    } else {
+    
+    if (this.indexBuffer === null)
       gl.drawArrays(this.topologyType, 0, this.vertexNumber);
-    }
+    else
+      gl.drawElements(this.topologyType, this.indexNumber, gl.UNSIGNED_INT, 0);
   } /* draw */
 } /* SingleMeshPrimitive */
 

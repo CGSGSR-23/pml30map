@@ -1,3 +1,148 @@
+export class Vec4 {
+  x: number;
+  y: number;
+  z: number;
+  w: number;
+
+  /**
+   * Vector constructor
+   * @param x Vector component
+   * @param y Vector component
+   * @param z Vector component
+   * @param w Vector component
+   */
+  constructor(x: number, y: number, z: number, w: number) {
+    this.x = x;
+    this.y = y;
+    this.z = z;
+    this.w = w;
+  } /* constructor */
+
+  /**
+   * Vector from object create function
+   * @param object Object to create vec3 from
+   * @returns Vector with {x, y, z} coordinates
+   */
+  static fromObject(object: { x: number, y: number, z: number, w: number }): Vec4 {
+    return new Vec4(object.x, object.y, object.z, object.w);
+  } /* fromObject */
+
+  /**
+   * vector copying function
+   * @returns Copy of this vector
+   */
+  copy(): Vec4 {
+    return new Vec4(this.x, this.y, this.z, this.w);
+  } /* copy */
+
+  /**
+   * Vector adding function
+   * @param rhs Right operand vector
+   * @returns Sum of this and rhs vectors
+   */
+  add(rhs: Vec4): Vec4 {
+    return new Vec4(
+      this.x + rhs.x,
+      this.y + rhs.y,
+      this.z + rhs.z,
+      this.w + rhs.w
+    );
+  } /* add */
+
+  /**
+   * Vector subscription function
+   * @param rhs Right operand vector
+   * @returns Difference of this and rhs vectors
+   */
+  sub(rhs: Vec4): Vec4 {
+    return new Vec4(
+      this.x - rhs.x,
+      this.y - rhs.y,
+      this.z - rhs.z,
+      this.w - rhs.w
+    );
+  } /* sub */
+
+  /**
+   * Vector multiplication vector
+   * @param rhs Right operand vector or number
+   * @returns this multiplied by rhs
+   */
+  mul(rhs: Vec4 | number): Vec4 {
+    if (rhs instanceof Vec4)
+      return new Vec4(
+        this.x * rhs.x,
+        this.y * rhs.y,
+        this.z * rhs.z,
+        this.w * rhs.w
+      );
+    return new Vec4(
+      this.x * rhs,
+      this.y * rhs,
+      this.z * rhs,
+      this.w * rhs
+    );
+  } /* mul */
+
+  /**
+   * Vector length square getting function
+   * @returns Length ** 2
+   */
+  length2(): number {
+    return this.x * this.x + this.y * this.y + this.z * this.z + this.w * this.w;
+  } /* length */
+
+  /**
+   * Vector length getting function
+   * @returns Length
+   */
+  length(): number {
+    return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z + this.w * this.w);
+  } /* length */
+
+  /**
+   * Distance between vectors getting function
+   * @param rhs Vector to get distance with
+   * @returns Distance
+   */
+  distance(rhs: Vec4): number {
+    let
+      dx = this.x - rhs.x,
+      dy = this.y - rhs.y,
+      dz = this.z - rhs.z,
+      dw = this.w - rhs.w;
+
+    return Math.sqrt(dx * dx + dy * dy + dz * dz + dw * dw);
+  } /* distance */
+
+  /**
+   * Dot product getting fucntion
+   * @param rhs Right operand
+   * @returns Dot product
+   */
+  dot(rhs: Vec4): number {
+    return this.x * rhs.x + this.y * rhs.y + this.z * rhs.z + this.w * rhs.w;
+  } /* dot */
+
+  /**
+   * Vector normalization function
+   * @returns Vector with same direction, but 1 length
+   */
+  normalize(): Vec4 {
+    let len = Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z + this.w * this.w);
+
+    return new Vec4(this.x / len, this.y / len, this.z / len, this.w / len);
+  } /* normalize */
+
+  /**
+   * Negative vector getting function
+   * @returns -this
+   */
+  neg(): Vec4 {
+    return new Vec4(-this.x, -this.y, -this.z, -this.w);
+  } /* neg */
+} /* class Vec4 */
+
 /**
  * 3-component vector class
  */
