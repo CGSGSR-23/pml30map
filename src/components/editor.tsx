@@ -84,9 +84,9 @@ class NodeSettings extends React.Component<NodeSettingsProps, NodeSettingsState>
   constructor( props: NodeSettingsProps ) {
     super(props);
     this.state = {
-      nameRef: createRef(),
-      floorRef: createRef(),
-      skysphereRef: createRef(),
+      nameRef: React.createRef(),
+      floorRef: React.createRef(),
+      skysphereRef: React.createRef(),
     };
   }
 

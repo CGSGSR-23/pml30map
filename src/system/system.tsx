@@ -64,6 +64,20 @@ export class Timer {
   } /* response */
 } /* class Timer */
 
+// uniform cameraBuffer
+// {
+//   mat4 transformWorld;
+//   mat4 transformViewProj;
+//   vec3 cameraLocation;
+//   float currentID;
+// };
+
+class DisplayModel {
+  model: Model;
+  transform: Mat4;
+  unitID: number;
+}
+
 /**
  * @brief Unit response class. May be react element
  */
@@ -74,12 +88,15 @@ export class System {
   mainLoopTimeout: NodeJS.Timeout;
   units: Unit[] = [];
 
-  renderQueue: Model[] = [];
+  currentUnitID = 0;
+  renderQueue: DisplayModel[] = [];
   defaultTarget: Target;
   target: Target;
   fsMaterial: Material;
   fsPrimitive: Model;
-  outerImage: Texture;
+
+  camera: Camera;
+  cameraUniformbuffer: UniformBuffer;
 
   /**
    * System constructor. Basically, should be only one system on client
@@ -111,10 +128,9 @@ export class System {
 
     result.fsMaterial = await Material.create(gl, "bin/shaders/target");
     result.fsMaterial.resources = [...result.target.getAttachments()];
-
-    result.fsMaterial.resources.push(await Texture.load(gl, "bin/imgs/minimap/camp23map/f0.png"))
     result.fsPrimitive = Model.fromTopology(gl, Topology.square(), result.fsMaterial);
 
+    result.cameraUniformbuffer = UniformBuffer.create(gl, 36 * 4);
 
     return result;
   } /* create */
@@ -122,9 +138,14 @@ export class System {
   /**
    * Model displaying function
    * @param model Model create function
+   * @param transform Model transform
    */
-  drawModel(model: Model) {
-    this.renderQueue.push(model);
+  drawModel(model: Model, transform: Mat4 = Mat4.identity()) {
+    this.renderQueue.push({
+      model: model,
+      transform: transform,
+      unitID: this.currentUnitID
+    });
   } /* drawModel */
 
   /**
@@ -151,8 +172,10 @@ export class System {
     this.doRun = true;
 
     this.mainLoopTimeout = setInterval(() => {
-      for (let unit of this.units)
-        unit.response(this);
+      for (let i = 0, num = this.units.length; i < num; i++) {
+        this.currentUnitID = i;
+        this.units[i].response(this);
+      }
 
       let newUnits: Unit[] = [];
       for (let unit of this.units)
@@ -161,13 +184,21 @@ export class System {
       this.units = newUnits;
 
       this.target.bind();
-      for (let model of this.renderQueue)
-        model.draw(null);
+
+      // Write main data 
+      this.cameraUniformbuffer.writeSubData(new Float32Array([
+        ...this.camera.viewProj.m,
+        this.camera.loc.x, this.camera.loc.y, this.camera.loc.z,
+      ]), 0);
+
+      for (let model of this.renderQueue) {
+        this.cameraUniformbuffer.writeSubData(new Float32Array([model.unitID, ...model.transform.m]), 19 * 4);
+        model.model.draw(this.cameraUniformbuffer);
+      }
       gl.finish();
 
       this.defaultTarget.bind();
       this.fsPrimitive.draw(null);
-      // this.renderQueue[0].draw(null);
       gl.finish();
 
       this.renderQueue = [];

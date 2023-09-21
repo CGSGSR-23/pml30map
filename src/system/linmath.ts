@@ -174,18 +174,28 @@ export class Vec3 {
 
   /**
    * From polar coordinates construction function
-   * @param azimuth Azimuthal angle
-   * @param elevation Elevation angle
-   * @param radius Distance from origin
+   * @param spherical Spherical coordinates
    * @returns Converted vector
    */
-  static fromSpherical(azimuth: number, elevation: number, radius: number = 1): Vec3 {
+  static fromSpherical(spherical: {azimuth: number, elevation: number, radius: number}): Vec3 {
     return new Vec3(
-      radius * Math.sin(elevation) * Math.cos(azimuth),
-      radius * Math.cos(elevation),
-      radius * Math.sin(elevation) * Math.sin(azimuth)
+      spherical.radius * Math.sin(spherical.elevation) * Math.cos(spherical.azimuth),
+      spherical.radius * Math.cos(spherical.elevation),
+      spherical.radius * Math.sin(spherical.elevation) * Math.sin(spherical.azimuth)
     );
   } /* sphericalToCartesian */
+
+  /**
+   * Vector to spherical coords converting function
+   * @returns Struct with azimuth, elevation and radius
+   */
+  toSpherical(): {azimuth: number, elevation: number, radius: number} {
+    return {
+      azimuth: Math.acos(this.y),
+      elevation: this.z / Math.abs(this.z) * Math.acos(this.x / Math.sqrt(this.x * this.x + this.z * this.z)),
+      radius: this.length(),
+    };
+  } /* toSpherical */
 
   /**
    * vector copying function

@@ -2,25 +2,25 @@ import {Vec3, Mat4, Size} from "./linmath";
 
 export class Camera {
   // camera projection shape params
-  projSize = new Size(0.01, 0.01);
-  correctedProjSize = new Size(0.01, 0.01);
-  near = 0.01;
-  far = 8192;
+  projSize: Size = new Size(0.01, 0.01);
+  correctedProjSize: Size = new Size(0.01, 0.01);
+  screenSize: Size;
+  near: number = 0.01;
+  far: number = 8192;
 
   // current screen resolution
-  screenSize;
 
   // camera location
-  loc;
-  at;
-  dir;
-  up;
-  right;
+  loc: Vec3;
+  at: Vec3;
+  dir: Vec3;
+  up: Vec3;
+  right: Vec3;
 
   // camera projection matrices
-  view;
-  proj;
-  viewProj;
+  view: Mat4;
+  proj: Mat4;
+  viewProj: Mat4;
 
   constructor() {
     this.proj = Mat4.identity();

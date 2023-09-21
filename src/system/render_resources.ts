@@ -24,7 +24,7 @@ function shaderTypeToGL(type: ShaderType): number {
   }
 
   return 0;
-}
+} /* shaderTypeToGL */
 
 /**
  * Shader representation class
@@ -201,6 +201,13 @@ export class Texture implements ShaderBindable {
       gl.texImage2D(gl.TEXTURE_2D, 0, result.format.internalFormat, result.format.format, result.format.componentType, data);
     }
 
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+
     return result;
   } /* createTexture */
 
@@ -260,16 +267,23 @@ export class UniformBuffer implements ShaderBindable {
   gl: WebGL2RenderingContext;
   id: WebGLBuffer;
   size: number;
-  
+
+  /**
+   * Buffer create function
+   * @param gl WebGL rendering context
+   * @param size Buffer size
+   * @param data 
+   * @returns 
+   */
   static create(gl: WebGL2RenderingContext, size: number, data: ArrayBufferLike = null): UniformBuffer {
     let result: UniformBuffer = new UniformBuffer();
-    
+
     result.gl = gl;
     result.id = gl.createBuffer();
-    
+
     gl.bindBuffer(gl.UNIFORM_BUFFER, result.id);
     gl.bufferData(gl.UNIFORM_BUFFER, data, gl.STATIC_DRAW);
-    
+
     return result;
   } /* create */
 
@@ -281,6 +295,25 @@ export class UniformBuffer implements ShaderBindable {
  bind(program: Shader, block: number): void {
     this.gl.bindBufferBase(WebGL2RenderingContext.UNIFORM_BUFFER, block, this.id);
   } /* bind */
+
+  /**
+   * Data to buffer writing function
+   * @param data Data to write
+   */
+  writeData(data: BufferSource) {
+    this.gl.bindBuffer(this.gl.UNIFORM_BUFFER, this.id);
+    this.gl.bufferData(this.gl.UNIFORM_BUFFER, data, this.gl.STATIC_DRAW);
+    this.size = data.byteLength;
+  } /* writeData */
+
+  /**
+   * Data to buffer writing function
+   * @param data Data to write
+   */
+  writeSubData(data: BufferSource, offset: number) {
+    this.gl.bindBuffer(this.gl.UNIFORM_BUFFER, this.id);
+    this.gl.bufferSubData(this.gl.UNIFORM_BUFFER, offset, data);
+  } /* writeSubData */
 } /* class UniformBuffer */
 
 export interface Target {
@@ -394,7 +427,7 @@ class RenderTarget implements Target {
     gl.viewport(0, 0, this.width, this.height);
 
     for (let i = 0, num = this.attachments.length; i < num; i++)
-      gl.clearBufferfv(gl.COLOR, i, [0, 1, 0, 1]);
+      gl.clearBufferfv(gl.COLOR, i, [0, 0, 0, NaN]);
     gl.clearBufferfi(gl.DEPTH_STENCIL, 0, 1, 0);
 
     gl.drawBuffers(this.drawBuffers);
