@@ -7,7 +7,7 @@ import { URI } from "../socket";
 import { queryToStr } from "./support";
 import { System, Unit } from "../system/system";
 import { Target, Topology, Vertex, Material, Model } from "../system/render_resources";
-
+import { MinimapEditor } from "./minimap_editor";
 class Triangle implements Unit {
   doSuicide: boolean;
   model: Model;
@@ -145,9 +145,9 @@ interface EditorState {
   floorNumberRef: React.MutableRefObject<any>;
   menuJSX: JSX.Element;
   nodeSettingsRef: React.MutableRefObject<any>;
-  showNodeSettings: boolean,
+  showNodeSettings: boolean;
+  showMinimapSettings: boolean;
 }
-
 
 interface QueryData {
   key?: string;
@@ -196,9 +196,11 @@ export class Editor extends React.Component<EditorProps, EditorState> {
       menuJSX: (<></>),
       nodeSettingsRef: createRef(),
       showNodeSettings: true,
+      showMinimapSettings: false,
     };
     console.log('Viewer construcor');
     window.addEventListener("resize", () => {this.resize();});
+    this.curQuery = this.getQuery();
   } /* End of 'cosntructor' function */
 
   async goToNode( uri: URI ) {
@@ -226,29 +228,40 @@ export class Editor extends React.Component<EditorProps, EditorState> {
         }}>
           <canvas ref={this.state.canvasRef} style={{width: '100%', height: '100%'}} onContextMenu={(event) => { event.preventDefault(); }}/>
         </div>
-        <div style={{
+        <div className="box" style={{
           zIndex: 3,
           position: 'absolute',
-          backgroundColor: 'var(--bg-color)',
-          border: '0.2em solid var(--bg-color)',
-          padding: '0.5em',
-          width: '30em',
+          width: '22em',
         }}>
           {this.state.showNodeSettings && <NodeSettings ref={this.state.nodeSettingsRef} data={{floor: 0, name: 'nodename', skysphere: 'nodsjysphere', uri: new URI('[0, 0, 0, 0, 0, 0, 0, 0]')}}
           onDeleteNodeCallBack={()=>{}} onClose={()=>{}} onMakeDefaultCallBack={()=>{}} onSave={()=>{}}/>}
         </div>
-        <div style={{
+        <div className="box" style={{
           zIndex: 3,
           position: 'relative',
-          backgroundColor: 'var(--bg-color)',
-          border: '0.2em solid var(--bg-color)',
-          padding: '0.5em',
           float: 'right',
-          width: '20em'
+          //width: '20em'
         }}>
           <h2>Menu</h2>
           {this.state.menuJSX}
         </div>
+        {this.state.showMinimapSettings && <div style={{
+          zIndex: 4,
+          position: 'absolute',
+          backgroundColor: 'var(--shadow2-color)',
+
+          right: 0,
+          top: 0,
+          left: 0,
+          bottom: 0,
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}>
+          <MinimapEditor socket={this.props.socket} closeCallBack={()=>{
+            this.setState({ showMinimapSettings: false });
+          }}/>
+        </div>}
       </>
     );
   } /* End of 'render' function */
@@ -281,17 +294,24 @@ export class Editor extends React.Component<EditorProps, EditorState> {
         <input type="button" value="Go to server" onClick={()=>{
             window.location.href = "./server.html" + window.location.search;
         }}/><br/>
-        {allMaps.map((m)=>{
-          if (m == map.name)
-            return (<></>);
+        {allMaps.length > 0 && <>
+          <h2> Other maps:</h2>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'row-reverse'
+          }}>
+            {allMaps.map((m)=>{
+              if (m == map.name)
+                return (<></>);
 
-          return (<><input type="button" value={"Switch to " + m} onClick={()=>{
-            if (query.map != undefined)
-            this.curQuery.map = m;
-            this.updateQuery();
-            location.reload();
-          }}/><br/></>);
-        })}<br/>
+              return (<><input type="button" value={m} onClick={()=>{
+                if (query.map != undefined)
+                this.curQuery.map = m;
+                this.updateQuery();
+                location.reload();
+              }}/><br/></>);
+            })}
+          </div></>}
         {map.minimapInfo.floorCount > 1 &&
         <div className="flexRow spaceBetween">
           Visible floors:
@@ -299,11 +319,13 @@ export class Editor extends React.Component<EditorProps, EditorState> {
             <input ref={this.state.floorRef} type="range" min={map.minimapInfo.firstFloor} max={map.minimapInfo.firstFloor + map.minimapInfo.floorCount} onChange={(e)=>{
               this.state.floorNumberRef.current.innerText = e.target.value;
               this.upperFloor = parseInt(e.target.value);
-            }}/>
+            }} style={{ width: map.minimapInfo.floorCount * 2 + 'em' }}/>
             <div ref={this.state.floorNumberRef} style={{width: '1em'}}>{this.upperFloor}</div>
           </div>
-        </div>
-        }
+        </div>}
+        <input type="button" value="Minimap settings" onClick={()=>{
+          this.setState({ showMinimapSettings: true });
+        }}/>
       </>)
     });
   } /* componentDidMount */

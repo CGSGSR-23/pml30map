@@ -1,0 +1,28 @@
+:root {
+  --color1: #264057;
+  --color2: #507ea7;
+  --color3: #5a2c2c;
+  --color4: #cf9a9a;
+  --color5: #43683a;
+  --color6: #9bd38e;
+
+  --text-color: white;
+
+  --shadow-color: #6464644f;
+  --shadow2-color: #5c5c5c79;
+  --lighting-color: #ffffff2a;
+  --lighting2-color: #ffffff6c;
+  --lighting3-color: #ffffffa2;
+
+  --bg-color: rgb(70, 70, 70);
+  --sub-color: rgb(49, 59, 82);
+  --l-sub-color: rgb(82, 96, 131);
+  --d-sub-color: rgb(27, 32, 43);
+  --highlight-sub-color: rgb(212, 224, 102);
+  --focus-sub-color: rgb(66, 102, 33);
+  --l-focus-sub-color: rgb(96, 138, 56);
+
+  --div-bg-color: var(--lighting2-color);
+  --div-br-color: var(--lighting3-color);
+  
+}

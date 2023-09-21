@@ -1,53 +1,56 @@
-:root {
-  --color1: #5C7DDB;
-  --color2: #081742;
-  --color3: #5797A8;
-  --color4: #B3988A;
-  --color5: #DB755C;
-  --bg-main-color: #ffffff;
-  --bg-sub-color: #264055;
-  --sub-color: #6291a7;
-  --sub2-color:#61CE70;
-
-  --shadow-color: #02020218;
-  --lighting-color: #ffffff2a;
-}
+@import 'colors.css';
 
 input[type=button] {
-  background-color:  var(--color3);
+  --button-bg-color: var(--sub-color);
+  --button-text-color: var(--text-color);
+
+  --button-hover-color: var(--l-sub-color);
+  --button-hover-text-color: var(--text-color);
+
+  --button-active-color: var(--highlight-sub-color);
+  --button-active-text-color: var(--sub-color);
+
+  --button-focus-color: var(--focus-sub-color);
+  --button-focus-text-color: var(--text-color);
+  
+  --button-focus-hover-color: var(--l-focus-sub-color);
+  --button-focus-hover-text-color: var(--text-color);
+  
+
+  background-color:  var(--button-bg-color);
   border: none;
   margin: 0.2em;
   padding-block: 0.3em;
   padding-inline: 0.9em;
   font-size: 0.9em;
-  color:white;
+  color:var(--button-text-color);
 
-  transition: all 0.1s 0.05s;
+  transition: all 0.1s;
 
   &:hover {
-    outline: 0.2em solid var(--color3);
-    background-color: white;
-    color: var(--color3);
+    /*outline: 0.2em solid var(--button-hover-text-color);*/
+    background-color: var(--button-hover-color);
+    color: var(--button-hover-text-color);
   }
   
   &:active {
-    background: var(--color5);
-    color: white;
+    background: var(--highlight-sub-color);
+    color: var(--button-active-text-color);
   }
 
   &.active {
-    background: var(--color5);
-    color: white;
+    background: var(--button-focus-color);
+    color: var(--button-focus-text-color);
 
     &:hover {
-      outline: 0.2em solid var(--color3);
-      background-color: white;
-      color: var(--color5);
+      /*outline: 0.2em solid var(--button-focus-hover-text-color);*/
+      background-color: var(--button-focus-hover-color);
+      color: var(--button-focus-hover-text-color);
     }
     
     &:active {
-      background: var(--color5);
-      color: white;
+      background: var(--highlight-sub-color);
+      color: var(--button-active-text-color);
     }
   }
   
@@ -137,14 +140,3 @@ input[type=button] {
     }
   } 
 }
-
-
-hr {
-  margin: 1em 0;
-  padding: 0;
-  height: 0;
-  border: none;
-  border-top: 2px dashed var(--color3);
-}
-  
-
