@@ -79,6 +79,7 @@ export class System {
   target: Target;
   fsMaterial: Material;
   fsPrimitive: Model;
+  outerImage: Texture;
 
   /**
    * System constructor. Basically, should be only one system on client
@@ -86,6 +87,11 @@ export class System {
    */
   constructor(canvas: HTMLCanvasElement) {
     let gl = canvas.getContext("webgl2") as WebGL2RenderingContext;
+
+    let extensions = ["EXT_color_buffer_float"];
+    for (let i = 0; i < extensions.length; i++)
+      if (gl.getExtension(extensions[i]) == null)
+        throw Error(`"${extensions[i]}" extension required`);
 
     this.canvas = canvas;
     this.gl = gl;
@@ -102,10 +108,13 @@ export class System {
 
     result.target = Target.create(gl, 2);
     result.defaultTarget = Target.createDefault(gl);
+
     result.fsMaterial = await Material.create(gl, "bin/shaders/target");
+    result.fsMaterial.resources = [...result.target.getAttachments()];
+
+    result.fsMaterial.resources.push(await Texture.load(gl, "bin/imgs/minimap/camp23map/f0.png"))
     result.fsPrimitive = Model.fromTopology(gl, Topology.square(), result.fsMaterial);
 
-    result.fsMaterial.resources = [...result.target.getAttachments()];
 
     return result;
   } /* create */
@@ -152,15 +161,16 @@ export class System {
       this.units = newUnits;
 
       this.target.bind();
-
       for (let model of this.renderQueue)
         model.draw(null);
-      this.renderQueue = [];
       gl.finish();
 
       this.defaultTarget.bind();
       this.fsPrimitive.draw(null);
+      // this.renderQueue[0].draw(null);
       gl.finish();
+
+      this.renderQueue = [];
     });
   } /* runMainLoop */
 } /* System */
