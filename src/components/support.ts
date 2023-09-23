@@ -14,10 +14,30 @@ export function queryToStr( obj: any ): string {
 } /* End of 'queryToStr' function */
 
 
-export function loadImg( fileName: string ) {
+export function loadImg( fileName: string ): Promise<HTMLImageElement> {
   var img = new Image();
   img.src = "./bin/imgs/" + fileName;
   return new Promise( async (resolve) => {
     img.onload = ()=>{ resolve(img); };
   });
 } /* loadImg */
+
+
+
+export async function uploadFile( file: File, path: string, name: string ) {
+  const formData = new FormData();
+
+  formData.append(
+      "img",
+      file,
+      name,
+  );
+
+  console.log("Upload file " + path + name);
+  console.log(file);
+
+  return fetch(`upload?path=${path}`, {
+    method: 'post',
+    body: formData,
+  });
+}

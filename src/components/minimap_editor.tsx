@@ -4,7 +4,7 @@ import { Connection } from "../socket";
 import { FloorInfo } from "./minimap";
 import { Vec2 } from "../system/linmath";
 import { loadImg } from "./support";
-
+import { uploadFile } from "./support";
 export interface MinimapEditorProps {
   socket: Connection;
   closeCallBack: ()=>void;
@@ -12,6 +12,7 @@ export interface MinimapEditorProps {
 
 export interface MinimapEditorState {
   canvasRef: React.MutableRefObject<any>;
+  imgFileRef: React.MutableRefObject<any>;
   imgListJSX: JSX.Element;
   editFloor: FloorInfo;
   mapInfo: MapInfo;
@@ -26,6 +27,7 @@ export class MinimapEditor extends React.Component<MinimapEditorProps, MinimapEd
     super(props);
     this.state = {
       canvasRef: createRef(),
+      imgFileRef: createRef(),
       imgListJSX: (<></>),
       editFloor: undefined,
       mapInfo: undefined,
@@ -52,29 +54,37 @@ export class MinimapEditor extends React.Component<MinimapEditorProps, MinimapEd
           <input type="button" value="close" onClick={this.props.closeCallBack}/>
         </div>
         <div className="flexRow">
-        <canvas ref={this.state.canvasRef} width={200} height={200} style={{
-            border: '0.2em dashed var(--color2)',
-            margin: '0.3em',
-            aspectRatio: 1,
-          }} onWheel={( we ) => {
-            var e = we.nativeEvent as MouseEvent;
-            let coef = Math.pow(0.95, we.deltaY / 100);
-            let mousePos = new Vec2(e.offsetX, e.offsetY);
-         
-            this.mapOffset = mousePos.sub(mousePos.sub(this.mapOffset).mul(coef));
-         
-            this.mapScale *= coef;
-         
-            this.updateCanvas();
-          }} onContextMenu={( e )=>{
-            e.preventDefault();
-          }} onMouseMove={( e )=>{
-            if (e.buttons & 1) // Drag
-            {
-              this.mapOffset = this.mapOffset.add(new Vec2(e.movementX, e.movementY));
+          <div className="flexColumn">
+            <canvas ref={this.state.canvasRef} width={200} height={200} style={{
+              border: '0.2em dashed var(--color2)',
+              margin: '0.3em',
+              aspectRatio: 1,
+            }} onWheel={( we ) => {
+              var e = we.nativeEvent as MouseEvent;
+              let coef = Math.pow(0.95, we.deltaY / 100);
+              let mousePos = new Vec2(e.offsetX, e.offsetY);
+            
+              this.mapOffset = mousePos.sub(mousePos.sub(this.mapOffset).mul(coef));
+            
+              this.mapScale *= coef;
+            
               this.updateCanvas();
-            }
-          }}/>
+            }} onContextMenu={( e )=>{
+              e.preventDefault();
+            }} onMouseMove={( e )=>{
+              if (e.buttons & 1) // Drag
+              {
+                this.mapOffset = this.mapOffset.add(new Vec2(e.movementX, e.movementY));
+                this.updateCanvas();
+              }
+            }}/>
+            <input ref={this.state.imgFileRef} type="file"/>
+            <input type="button" value="Load another" onClick={async ()=>{
+              if (this.state.imgFileRef.current.files.length > 0)
+                uploadFile(this.state.imgFileRef.current.files[0], 'pml30map/minimap/', `f${this.state.editFloor.floorIndex}.png`);
+              console.log("Sent");
+            }}/>
+          </div>
           {this.state.mapInfo != undefined && <div>
             {this.state.mapInfo.minimapInfo.floors.map((e)=>{
               return (<><input type="button" className={this.state.editFloor != undefined ? this.state.editFloor.floorIndex == e.floorIndex ? "active" : "" : ""} value={`Floor ${e.floorIndex} img: ${e.fileName}`} onClick={()=>{

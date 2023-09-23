@@ -11,7 +11,10 @@ const fileupload = require('express-fileupload');
 import { Vec2 } from "../src/system/linmath";
 import { MongoDB } from "./mongodb";
 import { Client, MapInfo } from "./client";
+import { ftpInit, getReadable } from "./storage";
+import { ftp } from "./storage";
 import * as fs from "fs";  
+import { StringWriter } from "./storage";
 
 const app = express();
 app.use(morgan("combined"));
@@ -165,19 +168,31 @@ app.use('/', (req, res, next )=>{
   next(); 
 }, express.static("../dist"));
 
-async function main() {
+async function ioInit() {
   const server = http.createServer(app);
   const io = new Server(server);
-  var DB = new MongoDB;
+  const DB = new MongoDB;
+  const ftpStorage = new ftp;
 
   await DB.init("mongodb+srv://doadmin:i04J9b2t1X853Cuy@db-mongodb-pml30-75e49c39.mongo.ondigitalocean.com/admin?tls=true&authSource=admin", mapsConfig.map((e)=>{ return e.dbName; }));
+  await ftpStorage.connect("ftpupload.net", "if0_35095022", "e9cdJZmBzH");
   
-  //const mapsInfo = fs.read("/etc/passwd", { encoding: "utf-8" });
-
   // For test
   io.on("connection", (socket) => {
     console.log('New connection');
     new Client(mapsConfig, DB, socket, getAccessLevel(socket.request));
+  });
+
+  // image storage
+  app.post("/upload", async ( req, res )=>{
+    console.log("IMAGE UPLOAD");
+    const client = await ftpClient;
+    const img = req.files.img;
+  
+    //console.log(img);
+    await client.uploadFrom(getReadable(img.data), "camp23map/" + req.files.img.name);
+    console.log('upload ended');
+    res.send('success');
   });
 
   server.listen(3047, () => {
@@ -185,4 +200,33 @@ async function main() {
   });
 }
 
-main();
+const ftpClient = ftpInit();
+
+app.post("/upload", async ( req, res )=>{
+  console.log("IMAGE UPLOAD");
+  const client = await ftpClient;
+  const img = req.files.img;
+  const imgName = 'storage/imgs/' + req.query.path + req.files.img.name;
+
+  console.log('Load img to ' + imgName);
+  console.log(img);
+  await client.uploadFrom(getReadable(img.data), imgName);
+  console.log('upload ended');
+  res.send('success');
+});
+
+app.get("/imgget", async ( req, res )=>{
+  console.log("Get img");
+  console.log("Get img");
+  console.log("Get img");
+  const client = await ftpClient;
+
+  const buf = new StringWriter();
+  console.log('================');
+  await client.downloadTo(buf, "storage/imgs/f2.png");
+  console.log('================');
+  console.log(buf.getBuf());
+  res.send(buf.getBuf());
+});
+ioInit();
+//ftpInit();
