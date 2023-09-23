@@ -173,28 +173,17 @@ export class Vec3 {
   } /* fromObject */
 
   /**
-   * From polar coordinates construction function
-   * @param spherical Spherical coordinates
-   * @returns Converted vector
-   */
-  static fromSpherical(spherical: {azimuth: number, elevation: number, radius: number}): Vec3 {
-    return new Vec3(
-      spherical.radius * Math.sin(spherical.elevation) * Math.cos(spherical.azimuth),
-      spherical.radius * Math.cos(spherical.elevation),
-      spherical.radius * Math.sin(spherical.elevation) * Math.sin(spherical.azimuth)
-    );
-  } /* sphericalToCartesian */
-
-  /**
    * Vector to spherical coords converting function
    * @returns Struct with azimuth, elevation and radius
    */
-  toSpherical(): {azimuth: number, elevation: number, radius: number} {
-    return {
-      azimuth: Math.acos(this.y),
-      elevation: Math.sign(this.z) * Math.acos(this.x / Math.sqrt(this.x * this.x + this.z * this.z)),
-      radius: this.length(),
-    };
+  toSpherical(): Spherical {
+    let len = this.length();
+
+    return new Spherical(
+      Math.acos(this.y / len),
+      Math.sign(this.z) * Math.acos(this.x / Math.sqrt(this.x * this.x + this.z * this.z)),
+      len,
+    );
   } /* toSpherical */
 
   /**
@@ -426,6 +415,39 @@ export class Vec2 {
     return new Vec2(this.y, -this.x);
   } /* right */
 } /* Vec2 */
+
+/**
+ * Spherical coordinates representation class
+ */
+export class Spherical {
+  azimuth: number;
+  elevation: number;
+  radius: number;
+
+  /**
+   * Spherical constructor
+   * @param azimuth Azimuth
+   * @param elevation Elevation
+   * @param radius Radius
+   */
+  constructor(azimuth: number, elevation: number, radius: number) {
+    this.azimuth = azimuth;
+    this.elevation = elevation;
+    this.radius = radius;
+  } /* Spherical */
+
+  /**
+   * Spherical-to-vec3 conversion function
+   * @returns 3-component vector with cartesian coordinates
+   */
+  toVec3(): Vec3 {
+    return new Vec3(
+      this.radius * Math.sin(this.azimuth) * Math.cos(this.elevation),
+      this.radius * Math.cos(this.azimuth),
+      this.radius * Math.sin(this.azimuth) * Math.sin(this.elevation)
+    );
+  } /* toVec3 */
+} /* Spherical */
 
 export class Size {
   w: number;

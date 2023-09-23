@@ -228,9 +228,9 @@ export class System {
 
       this.target.bind();
 
-      let angle = this.timer.time * Math.PI;
-      let loc = (new Vec3(Math.cos(angle), 1, Math.sin(angle))).mulNum(3);
-      this.camera.set(loc, new Vec3(0, 0, 0));
+      // let angle = this.timer.time * Math.PI;
+      // let loc = (new Vec3(Math.cos(angle), 1, Math.sin(angle))).mulNum(3);
+      // this.camera.set(loc, new Vec3(0, 0, 0));
 
       // Write main data
       this.cameraUniformbuffer.writeSubData(new Float32Array([

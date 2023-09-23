@@ -8,7 +8,10 @@ import { queryToStr } from "./support";
 import { System, Unit } from "../system/system";
 import { Topology, Material, Model } from "../system/render_resources";
 import { MinimapEditor } from "./minimap_editor";
+
+
 import { Skysphere } from "../units/skysphere";
+import * as CameraController from "../units/camera_controller";
 
 class Triangle implements Unit {
   skysphere: Skysphere;
@@ -21,13 +24,15 @@ class Triangle implements Unit {
    * @returns Promise of new triangle unit
    */
   static async create(system: System): Promise<Triangle> {
-    let unit: Triangle = new Triangle();
-    let tpl: Topology = Topology.tetrahedron();
-    let material: Material = await Material.create(system.gl, "bin/shaders/model");
+    let unit = new Triangle();
+    let tpl = Topology.tetrahedron();
+    let material = await Material.create(system.gl, "bin/shaders/model");
 
     unit.skysphere = await Skysphere.create(system, "bin/imgs/default.png");
     system.addUnit(unit.skysphere);
     unit.model = Model.fromTopology(system.gl, tpl, material);
+
+    system.addUnit(CameraController.Arcball.create(system));
 
     return unit;
   } /* create */
@@ -40,29 +45,6 @@ class Triangle implements Unit {
     system.drawModel(this.model);
   } /* response */
 } /* class Triangle */
-
-class FrameCounter implements Unit {
-  doSuicide: boolean;
-  frameIndex: number = 0;
-
-  constructor() {
-    const listenFunction = (key) => {
-      if (key.key != 'w')
-        return;
-      console.log("Suicide!");
-      this.doSuicide = true;
-
-      document.removeEventListener("keydown", listenFunction);
-    };
-
-    document.addEventListener("keydown", listenFunction)
-  } /* constructor */
-  
-  response(system: System) {
-    console.log(`Current frame: ${this.frameIndex++}`);
-  } /* response */
-} /* TestUnit */
-
 
 interface NodeData {
   uri: URI;
