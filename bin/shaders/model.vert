@@ -10,12 +10,21 @@ out vec2 drawTexCoord;
 out vec3 drawPosition;
 out vec3 drawNormal;
 
+uniform cameraBuffer {
+  mat4 transformViewProj;
+
+  vec3 cameraLocation;
+  float currentID;
+
+  mat4 transformWorld;
+};
+
 void main() {
-  gl_Position = vec4(inPosition * 0.5, 1);
+  gl_Position = transformViewProj * transformWorld * vec4(inPosition, 1);
 
   drawTexCoord = inTexCoord;
-  drawPosition = inPosition;
-  drawNormal = inNormal;
+  drawPosition = (transformWorld * vec4(inPosition, 1)).xyz;
+  drawNormal = normalize(mat3(inverse(transpose(transformWorld))) * inNormal);
 } /* main */
 
 /* target.vert */

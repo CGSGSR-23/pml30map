@@ -231,6 +231,26 @@ export class Texture implements ShaderBindable {
     });
   } /* loadTexture */
 
+  async load(url: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      let gl = this.gl;
+
+      let image = new Image();
+
+      image.onload = () => {
+        this.width = image.width;
+        this.height = image.height;
+
+        gl.bindTexture(gl.TEXTURE_2D, this.tex);
+        gl.texImage2D(gl.TEXTURE_2D, 0, this.format.internalFormat, this.format.format, this.componentType, image);
+        resolve();
+      };
+      image.onabort = () => {
+        reject();
+      };
+    });
+  } /* load */
+
   /**
    * Texture resize function
    * @param width  New texture width
@@ -271,18 +291,14 @@ export class UniformBuffer implements ShaderBindable {
   /**
    * Buffer create function
    * @param gl WebGL rendering context
-   * @param size Buffer size
-   * @param data 
    * @returns 
    */
-  static create(gl: WebGL2RenderingContext, size: number, data: ArrayBufferLike = null): UniformBuffer {
+  static create(gl: WebGL2RenderingContext): UniformBuffer {
     let result: UniformBuffer = new UniformBuffer();
 
     result.gl = gl;
     result.id = gl.createBuffer();
-
-    gl.bindBuffer(gl.UNIFORM_BUFFER, result.id);
-    gl.bufferData(gl.UNIFORM_BUFFER, data, gl.STATIC_DRAW);
+    result.size = 0;
 
     return result;
   } /* create */
@@ -295,7 +311,7 @@ export class UniformBuffer implements ShaderBindable {
  bind(program: Shader, block: number): void {
     this.gl.bindBufferBase(WebGL2RenderingContext.UNIFORM_BUFFER, block, this.id);
   } /* bind */
-
+  
   /**
    * Data to buffer writing function
    * @param data Data to write
@@ -623,6 +639,21 @@ export class Topology {
 
     return tpl;
   } /* indexedPlane */
+
+  static tetrahedron(): Topology {
+    let tpl = new Topology();
+
+    tpl.vtx = [
+      Vertex.fromCoord( 0.5773502691896, -0.4082482904638,  0.0),
+      Vertex.fromCoord(-0.2886751345948, -0.4082482904638,  0.5),
+      Vertex.fromCoord(-0.2886751345948, -0.4082482904638, -0.5),
+      Vertex.fromCoord( 0.0000000000000,  0.4082482904638,  0.0),
+    ];
+    tpl.idx = [0, 1, 3, 2, 0, 1];
+    tpl.type = TopologyType.TRIANGLE_STRIP;
+
+    return tpl;
+  } /* tetrahedron */
 
   static plane(width: number, height: number): Topology {
     let tpl = this.indexedPlane(width, height);

@@ -25,7 +25,7 @@ export class Camera {
   constructor() {
     this.proj = Mat4.identity();
     this.set(new Vec3(0, 0, -1), new Vec3(0, 0, 0), new Vec3(0, 1, 0));
-    this.resize(new Size(30, 30));
+    this.resize(30, 30);
   } /* constructor */
 
   projSet(newNear: number, newFar: number, newProjSize: Size | undefined) {
@@ -50,20 +50,26 @@ export class Camera {
     this.viewProj = this.view.mul(this.proj);
   } /* projSet */
 
-  resize(newScreenSize: Size) {
-    this.screenSize = newScreenSize.copy();
+  /**
+   * Camera resize function
+   * @param newWidth  New frame width
+   * @param newHeight New frame height
+   */
+  resize(newWidth: number, newHeight: number) {
+    console.log(`camera resized to <${newWidth}, ${newHeight}>`);
+    this.screenSize = new Size(newWidth, newHeight);
     this.projSet(this.near, this.far, this.projSize);
   } /* resize */
 
-  set(loc: Vec3, at: Vec3, up: Vec3) {
+  set(loc: Vec3, at: Vec3, up: Vec3 = new Vec3(0, 1, 0)) {
     this.view = Mat4.view(loc, at, up);
     this.viewProj = this.view.mul(this.proj);
 
     this.loc = loc.copy();
     this.at = at.copy();
 
-    this.right = new Vec3(this.view.m[ 0], this.view.m[ 4], this.view.m[ 8]);
-    this.up    = new Vec3(this.view.m[ 1], this.view.m[ 5], this.view.m[ 9]);
-    this.dir   = new Vec3(this.view.m[ 2], this.view.m[ 6], this.view.m[10]).mul(-1);
+    this.right = new Vec3( this.view.m[ 0],  this.view.m[ 4],  this.view.m[ 8]);
+    this.up    = new Vec3( this.view.m[ 1],  this.view.m[ 5],  this.view.m[ 9]);
+    this.dir   = new Vec3(-this.view.m[ 2], -this.view.m[ 6], -this.view.m[10]);
   } /* set */
 } /* Camera */

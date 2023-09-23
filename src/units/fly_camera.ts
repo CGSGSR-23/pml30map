@@ -30,7 +30,7 @@ export class FlyCamera implements Unit {
   } /* constructor */
 
   response(system: System) {
-    
+
   } /* create */
 } /* FlyCamera */
 

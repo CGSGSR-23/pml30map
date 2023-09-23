@@ -1,7 +1,7 @@
 import * as React from "react";
 import {Camera} from "./camera";
 import {Vec2, Vec3, Mat4, Size} from "./linmath";
-import {Shader, Target, Texture, UniformBuffer, Topology, Model, Material} from "./render_resources";
+import {Shader, Target, Texture, UniformBuffer, Topology, Model, Material, TextureComponentType} from "./render_resources";
 
 /**
  * Unit interface
@@ -31,10 +31,10 @@ export class Timer {
 
   /**
    * Current time getting function
-   * @returns Current time in Milliseconds
+   * @returns Current time in Seconds
    */
   static getCurrentTime(): number {
-    return (new Date()).getMilliseconds() / 10e6;
+    return Date.now() / 10e3;
   } /* getCurrentTime */
 
   /**
@@ -94,9 +94,34 @@ export class System {
   target: Target;
   fsMaterial: Material;
   fsPrimitive: Model;
+  timer: Timer;
 
   camera: Camera;
   cameraUniformbuffer: UniformBuffer;
+
+  /**
+   * Resource create functions
+   */
+
+  createUniformBuffer(): UniformBuffer {
+    return UniformBuffer.create(this.gl);
+  } /* createUnfiormBuffer */
+  
+  async createTextureFromURL(url: string): Promise<Texture> {
+    return Texture.load(this.gl, url);
+  } /* createTextureFromURL */
+  
+  createTexture(width: number, height: number, componentType: TextureComponentType, componentCount: number, data: TexImageSource = null): Texture {
+    return Texture.create(this.gl, width, height, componentType, componentCount, data);
+  } /*  createTexture */
+
+  async createMaterial(materialShaderName: string): Promise<Material> {
+    return Material.create(this.gl, materialShaderName);
+  } /* createMaterial */
+
+  createModelFromTopology(topology: Topology, material: Material): Model {
+    return Model.fromTopology(this.gl, topology, material);
+  } /* createModelFromTopology */
 
   /**
    * System constructor. Basically, should be only one system on client
@@ -123,6 +148,9 @@ export class System {
     let result = new System(canvas);
     let gl = result.gl;
 
+    gl.enable(gl.DEPTH_TEST);
+    gl.depthFunc(gl.LEQUAL);
+
     result.target = Target.create(gl, 2);
     result.defaultTarget = Target.createDefault(gl);
 
@@ -130,10 +158,24 @@ export class System {
     result.fsMaterial.resources = [...result.target.getAttachments()];
     result.fsPrimitive = Model.fromTopology(gl, Topology.square(), result.fsMaterial);
 
-    result.cameraUniformbuffer = UniformBuffer.create(gl, 36 * 4);
+    // Create uniform buffer with ??? size.
+    result.camera = new Camera();
+    result.cameraUniformbuffer = UniformBuffer.create(gl);
+    result.cameraUniformbuffer.writeData(new Float32Array(36));
+
+    result.timer = new Timer();
 
     return result;
   } /* create */
+
+  resize(newWidth: number, newHeight: number) {
+    this.canvas.width = newWidth;
+    this.canvas.height = newHeight;
+
+    this.defaultTarget.resize(this.canvas.width, this.canvas.height);
+    this.target.resize(this.canvas.width, this.canvas.height);
+    this.camera.resize(newWidth, newHeight);
+  } /* resize */
 
   /**
    * Model displaying function
@@ -172,6 +214,7 @@ export class System {
     this.doRun = true;
 
     this.mainLoopTimeout = setInterval(() => {
+      this.timer.response();
       for (let i = 0, num = this.units.length; i < num; i++) {
         this.currentUnitID = i;
         this.units[i].response(this);
@@ -185,13 +228,18 @@ export class System {
 
       this.target.bind();
 
-      // Write main data 
+      let angle = this.timer.time * Math.PI;
+      let loc = (new Vec3(Math.cos(angle), 1, Math.sin(angle))).mulNum(3);
+      this.camera.set(loc, new Vec3(0, 0, 0));
+
+      // Write main data
       this.cameraUniformbuffer.writeSubData(new Float32Array([
         ...this.camera.viewProj.m,
         this.camera.loc.x, this.camera.loc.y, this.camera.loc.z,
       ]), 0);
 
       for (let model of this.renderQueue) {
+        // write per-model data (Unit ID, model transformation matrix etc.)
         this.cameraUniformbuffer.writeSubData(new Float32Array([model.unitID, ...model.transform.m]), 19 * 4);
         model.model.draw(this.cameraUniformbuffer);
       }

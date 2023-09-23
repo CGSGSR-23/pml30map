@@ -6,9 +6,12 @@ import { Connection } from "../socket";
 import { URI } from "../socket";
 import { queryToStr } from "./support";
 import { System, Unit } from "../system/system";
-import { Target, Topology, Vertex, Material, Model } from "../system/render_resources";
+import { Topology, Material, Model } from "../system/render_resources";
 import { MinimapEditor } from "./minimap_editor";
+import { Skysphere } from "../units/skysphere";
+
 class Triangle implements Unit {
+  skysphere: Skysphere;
   doSuicide: boolean;
   model: Model;
 
@@ -19,9 +22,11 @@ class Triangle implements Unit {
    */
   static async create(system: System): Promise<Triangle> {
     let unit: Triangle = new Triangle();
-    let tpl: Topology = Topology.sphere(0.1);
+    let tpl: Topology = Topology.tetrahedron();
     let material: Material = await Material.create(system.gl, "bin/shaders/model");
 
+    unit.skysphere = await Skysphere.create(system, "bin/imgs/default.png");
+    system.addUnit(unit.skysphere);
     unit.model = Model.fromTopology(system.gl, tpl, material);
 
     return unit;
@@ -199,21 +204,15 @@ export class Editor extends React.Component<EditorProps, EditorState> {
       showMinimapSettings: false,
     };
     console.log('Viewer construcor');
-    window.addEventListener("resize", () => {this.resize();});
+    window.addEventListener("resize", () => {
+      this.system.resize(this.state.canvasRef.current.clientWidth, this.state.canvasRef.current.clientHeight);
+    });
     this.curQuery = this.getQuery();
   } /* End of 'cosntructor' function */
 
   async goToNode( uri: URI ) {
-    
-  } /* goToNode */
-  
-  resize() {
-    this.system.canvas.width = this.state.canvasRef.current.clientWidth;
-    this.system.canvas.height = this.state.canvasRef.current.clientHeight;
 
-    this.system.defaultTarget.resize(this.system.canvas.width, this.system.canvas.height);
-    this.system.target.resize(this.system.canvas.width, this.system.canvas.height);
-  } /* resize */
+  } /* goToNode */
 
   render() {
     return (
@@ -268,7 +267,7 @@ export class Editor extends React.Component<EditorProps, EditorState> {
   
   async systemInit() {
     this.system = await System.create(this.state.canvasRef.current);
-    this.resize();
+    this.system.resize(this.state.canvasRef.current.clientWidth, this.state.canvasRef.current.clientHeight);
 
     this.system.addUnit(await Triangle.create(this.system));
 

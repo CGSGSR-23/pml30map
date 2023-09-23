@@ -192,7 +192,7 @@ export class Vec3 {
   toSpherical(): {azimuth: number, elevation: number, radius: number} {
     return {
       azimuth: Math.acos(this.y),
-      elevation: this.z / Math.abs(this.z) * Math.acos(this.x / Math.sqrt(this.x * this.x + this.z * this.z)),
+      elevation: Math.sign(this.z) * Math.acos(this.x / Math.sqrt(this.x * this.x + this.z * this.z)),
       radius: this.length(),
     };
   } /* toSpherical */
@@ -249,6 +249,32 @@ export class Vec3 {
       this.z * rhs
     );
   } /* mul */
+
+  /**
+   * Vec3 to number multiplication function
+   * @param rhs Number
+   * @returns 3-component vector multiplied by rhs number
+   */
+  mulNum(rhs: number): Vec3 {
+    return new Vec3(
+      this.x * rhs,
+      this.y * rhs,
+      this.z * rhs,
+    );
+  } /* mulNum */
+
+  /**
+   * Vec3 to number multiplication function
+   * @param rhs 3-component vector
+   * @returns 3-component vector multiplied by rhs vector
+   */
+  mulVec(rhs: Vec3): Vec3 {
+    return new Vec3(
+      this.x * rhs.x,
+      this.y * rhs.y,
+      this.z * rhs.z,
+    );
+  } /* mulVec */
 
   /**
    * Vector length square getting function
