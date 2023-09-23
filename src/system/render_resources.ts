@@ -71,11 +71,11 @@ export class Shader {
       vs: WebGLShader = null,
       fs: WebGLShader = null;
 
-      await Promise.all([
-        Shader.loadShaderModule(gl, ShaderType.VERTEX, path).then(shader => vs = shader, error => {}),
+    await Promise.all([
+      Shader.loadShaderModule(gl, ShaderType.VERTEX, path).then(shader => vs = shader, error => {}),
       Shader.loadShaderModule(gl, ShaderType.FRAGMENT, path).then(shader => fs = shader, error => {}),
     ]);
-    
+
     if (vs === null || fs === null) {
       let log = `Shader loading error: Can't load shader module`;
       console.log(log);

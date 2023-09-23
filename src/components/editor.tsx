@@ -1,17 +1,15 @@
-import { Minimap, FloorInfo } from "./minimap";
 import { MapInfo } from "../../server/client";
-import { Vec2, Vec3 } from "../system/linmath";
-import React, { createRef } from "react";
+import React from "react";
 import { Connection } from "../socket";
 import { URI } from "../socket";
 import { queryToStr } from "./support";
-import { System, Unit } from "../system/system";
-import { Topology, Material, Model } from "../system/render_resources";
 import { MinimapEditor } from "./minimap_editor";
 
-
+import { System, Unit } from "../system/system";
+import { Topology, Material, Model, UniformBuffer } from "../system/render_resources";
 import { Skysphere } from "../units/skysphere";
 import * as CameraController from "../units/camera_controller";
+import * as LinMath from '../system/linmath';
 
 class Triangle implements Unit {
   skysphere: Skysphere;
@@ -28,11 +26,9 @@ class Triangle implements Unit {
     let tpl = Topology.tetrahedron();
     let material = await Material.create(system.gl, "bin/shaders/model");
 
-    unit.skysphere = await Skysphere.create(system, "bin/imgs/default.png");
-    system.addUnit(unit.skysphere);
-    unit.model = Model.fromTopology(system.gl, tpl, material);
-
+    system.addUnit(await Skysphere.create(system, "bin/imgs/default.png"));
     system.addUnit(CameraController.Arcball.create(system));
+    unit.model = Model.fromTopology(system.gl, tpl, material);
 
     return unit;
   } /* create */
@@ -66,6 +62,29 @@ interface NodeSettingsState {
   skysphereRef: React.MutableRefObject<any>;
   floorRef: React.MutableRefObject<any>;
 } /* NodeSettingsState */
+
+class BaseConstruction implements Unit {
+  doSuicide: boolean;
+
+  material: Material;
+  uniformBuffer: UniformBuffer;
+  model: Model;
+  cutFloor: number;
+
+  lightingDirection: LinMath.Vec3;
+
+  static create(system: System) {
+
+  } /* create */
+
+  /**
+   * Unit response function
+   * @param system Class to response by
+   */
+  response(system: System): void {
+
+  } /* response */
+} /* BaseConstruction */
 
 class NodeSettings extends React.Component<NodeSettingsProps, NodeSettingsState> {
   constructor( props: NodeSettingsProps ) {
@@ -177,15 +196,14 @@ export class Editor extends React.Component<EditorProps, EditorState> {
   constructor( props: EditorProps ) {
     super(props);
     this.state = {
-      canvasRef: createRef(),
-      floorRef: createRef(),
-      floorNumberRef: createRef(),
+      canvasRef: React.createRef(),
+      floorRef: React.createRef(),
+      floorNumberRef: React.createRef(),
       menuJSX: (<></>),
-      nodeSettingsRef: createRef(),
+      nodeSettingsRef: React.createRef(),
       showNodeSettings: true,
       showMinimapSettings: false,
     };
-    console.log('Viewer construcor');
     window.addEventListener("resize", () => {
       this.system.resize(this.state.canvasRef.current.clientWidth, this.state.canvasRef.current.clientHeight);
     });
@@ -246,18 +264,16 @@ export class Editor extends React.Component<EditorProps, EditorState> {
       </>
     );
   } /* End of 'render' function */
-  
+
+
   async systemInit() {
     this.system = await System.create(this.state.canvasRef.current);
     this.system.resize(this.state.canvasRef.current.clientWidth, this.state.canvasRef.current.clientHeight);
-
-    this.system.addUnit(await Triangle.create(this.system));
-
+    this.system.createUnit(Triangle.create);
     this.system.runMainLoop();
   } /* systemInit */
 
   async componentDidMount() {
-    console.log(this.state.canvasRef.current);
     this.systemInit();
 
     // Get context

@@ -3,6 +3,15 @@ import {Camera} from "./camera";
 import {Vec2, Vec3, Mat4, Size} from "./linmath";
 import {Shader, Target, Texture, UniformBuffer, Topology, Model, Material, TextureComponentType} from "./render_resources";
 
+
+interface UnitCreateFunction {
+  (system: System, ...args: any): Unit;
+}
+
+interface UnitPromiseFunction {
+  (system: System, ...args: any): Promise<Unit>;
+}
+
 /**
  * Unit interface
  */
@@ -197,6 +206,24 @@ export class System {
   addUnit(unit: Unit) {
     this.units.push(unit);
   } /* addUnit */
+
+  /**
+   * Unit create function
+   * @param fn Function to create unit by
+   * @param constructionArguments Unit construction arguments (ACHTUNG! DYNAMIC TYPE)
+   * @returns Created unit (as unit only((()
+   */
+  async createUnit(fn: UnitCreateFunction | UnitPromiseFunction, ...constructionArguments: any): Promise<Unit> {
+    let system = this;
+    return new Promise<Unit>((resolve) => {
+      let unitPromise: Promise<Unit> = (async() => { return fn(this, ...constructionArguments); })();
+
+      unitPromise.then((unit: Unit) => {
+        system.units.push(unit);
+        resolve(unit);
+      });
+    });
+  } /* createUnit */
 
   /**
    * Main loop running function

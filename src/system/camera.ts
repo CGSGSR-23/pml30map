@@ -56,7 +56,6 @@ export class Camera {
    * @param newHeight New frame height
    */
   resize(newWidth: number, newHeight: number) {
-    console.log(`camera resized to <${newWidth}, ${newHeight}>`);
     this.screenSize = new Size(newWidth, newHeight);
     this.projSet(this.near, this.far, this.projSize);
   } /* resize */

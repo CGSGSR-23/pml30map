@@ -8,13 +8,6 @@ export class Arcball implements Unit {
     system.canvas.addEventListener("mousemove", (event: MouseEvent) => {
       if (event.altKey || event.shiftKey)
         return;
-      
-      let vec = new Vec3(1, 1, 1);
-      let svec = vec.toSpherical();
-      let cvec = svec.toVec3();
-      if (vec.distance(cvec) > 0.01) {
-        console.log(`<${vec.x}, ${vec.y}, ${vec.z}> != <${cvec.x}, ${cvec.y}, ${cvec.z}>`);
-      }
 
       let
         mdx = event.movementX / 200.0,

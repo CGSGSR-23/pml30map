@@ -24,6 +24,7 @@ export class Skysphere implements Unit {
    * @param imageURL URL of initial image this sphere is setted to
    */
   static async create(system: System, imageURL: string): Promise<Skysphere> {
+    console.log(imageURL);
     let result = new Skysphere();
 
     result.material = await system.createMaterial("bin/shaders/skysphere");
