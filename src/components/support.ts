@@ -22,22 +22,15 @@ export function loadImg( fileName: string ): Promise<HTMLImageElement> {
   });
 } /* loadImg */
 
-
-
-export async function uploadFile( file: File, path: string, name: string ) {
-  const formData = new FormData();
-
-  formData.append(
-      "img",
-      file,
-      name,
-  );
-
-  console.log("Upload file " + path + name);
-  console.log(file);
-
-  return fetch(`upload?path=${path}`, {
-    method: 'post',
-    body: formData,
+export function getQuery(): any {
+  const urlParams = new URLSearchParams(window.location.search);
+  var out = {};
+  urlParams.forEach((value, name)=>{
+    out = {
+      ...out,
+      [name]: value,
+    }
   });
+
+  return out;
 }

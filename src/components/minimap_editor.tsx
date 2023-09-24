@@ -4,7 +4,7 @@ import { Connection } from "../socket";
 import { FloorInfo } from "./minimap";
 import { Vec2 } from "../system/linmath";
 import { loadImg } from "./support";
-import { uploadFile } from "./support";
+import { uploadFile } from "./upload";
 export interface MinimapEditorProps {
   socket: Connection;
   closeCallBack: ()=>void;
@@ -46,6 +46,11 @@ export class MinimapEditor extends React.Component<MinimapEditorProps, MinimapEd
     this.updateCanvas();
   }
 
+  async reloadImg() {
+    this.curImg = await loadImg(this.state.editFloor.fileName + "?" + Math.random()) as HTMLImageElement;
+    this.updateCanvas();
+  }
+
   render() {
     return (
       <div className="box">
@@ -80,8 +85,14 @@ export class MinimapEditor extends React.Component<MinimapEditorProps, MinimapEd
             }}/>
             <input ref={this.state.imgFileRef} type="file"/>
             <input type="button" value="Load another" onClick={async ()=>{
-              if (this.state.imgFileRef.current.files.length > 0)
-                uploadFile(this.state.imgFileRef.current.files[0], 'pml30map/minimap/', `f${this.state.editFloor.floorIndex}.png`);
+              if (this.state.imgFileRef.current.files.length > 0 && this.state.mapInfo != undefined)
+              {
+                const imgPath = "imgs/minimap/", imgName = `f${this.state.editFloor.floorIndex}.png`;
+
+                // maps/{mapName}/imgs/minimap/
+                await uploadFile(this.state.imgFileRef.current.files[0], `maps/${this.state.mapInfo.name}/${imgPath}`, imgName);
+                await this.reloadImg();
+              }
               console.log("Sent");
             }}/>
           </div>

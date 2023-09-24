@@ -4,7 +4,7 @@ import { Vec2, Vec3 } from "../system/linmath";
 import React, { createRef } from "react";
 import { Connection } from "../socket";
 import { URI } from "../socket";
-import { queryToStr } from "./support";
+import { queryToStr, getQuery } from "./support";
 import { System, Unit } from "../system/system";
 
 interface ViewerProps {
@@ -38,16 +38,7 @@ export class Viewer extends React.Component<ViewerProps, ViewerState> {
   }
 
   getQuery(): QueryData {
-    const urlParams = new URLSearchParams(window.location.search);
-    var out = {};
-    urlParams.forEach((value, name)=>{
-      out = {
-        ...out,
-        [name]: value,
-      }
-    });
- 
-    return out as QueryData;
+    return getQuery() as QueryData;
   }
 
   updateQuery() {

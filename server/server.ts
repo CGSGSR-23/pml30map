@@ -11,10 +11,8 @@ const fileupload = require('express-fileupload');
 import { Vec2 } from "../src/system/linmath";
 import { MongoDB } from "./mongodb";
 import { Client, MapInfo } from "./client";
-import { ftpInit, getReadable } from "./storage";
-import { ftp } from "./storage";
 import * as fs from "fs";  
-import { StringWriter } from "./storage";
+import { FtpConnection } from "./storage";
 
 const app = express();
 app.use(morgan("combined"));
@@ -35,27 +33,27 @@ const mapsConfig: MapInfo[] = [
       modelEndPos: new Vec2(11.499, 16.445),
       floors: [
         {
-          fileName: 'minimap/pml30map/f-1.png',
+          fileName: 'maps/pml30map/imgs/minimap/f-1.png',
           floorIndex: -1,
         },
         {
-          fileName: 'minimap/pml30map/f0.png',
+          fileName: 'maps/pml30map/imgs/minimap/f0.png',
           floorIndex: 0,
         },
         {
-          fileName: 'minimap/pml30map/f1.png',
+          fileName: 'maps/pml30map/imgs/minimap/f1.png',
           floorIndex: 1,
         },
         {
-          fileName: 'minimap/pml30map/f2.png',
+          fileName: 'maps/pml30map/imgs/minimap/f2.png',
           floorIndex: 2,
         },
         {
-          fileName: 'minimap/pml30map/f3.png',
+          fileName: 'maps/pml30map/imgs/minimap/f3.png',
           floorIndex: 3,
         },
         {
-          fileName: 'minimap/pml30map/f4.png',
+          fileName: 'maps/pml30map/imgs/minimap/f4.png',
           floorIndex: 4,
         },
       ],
@@ -87,8 +85,6 @@ const mapsConfig: MapInfo[] = [
 //app.use('/bin/models/worldmap', (req, res, next )=>{
 //  res.sendFile(path.normalize(__dirname + `/../bin/models/${availableDB[curDBIndex].name}.obj`));
 //});
-
-app.use('/bin', express.static("../bin"));
 
 const enableKeys: number = 2;
                       // 0 - no check
@@ -140,42 +136,16 @@ function getAccessLevel( req ): number {
   return accessLevel;
 }
 
-app.use('/', (req, res, next )=>{
-  if (req.path == '/')
-  {
-    res.redirect('viewer.html');
-    return;
-  }
-
-  if (enableKeys > 0)
-  {
-    for (var i = 0; i < pages.length; i++)
-    {
-      if (req.path != pages[i].page)
-        continue;
-
-      if (getAccessLevel(req) < pages[i].accessLevel)
-      {
-        console.log("Access denied!!!!!!");
-        if (enableKeys == 2)
-          res.redirect("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
-        else
-          res.sendStatus(404);
-        return;
-      }
-    }
-  }
-  next(); 
-}, express.static("../dist"));
 
 async function ioInit() {
   const server = http.createServer(app);
   const io = new Server(server);
   const DB = new MongoDB;
-  const ftpStorage = new ftp;
+  const ftpStorage = new FtpConnection;
 
   await DB.init("mongodb+srv://doadmin:i04J9b2t1X853Cuy@db-mongodb-pml30-75e49c39.mongo.ondigitalocean.com/admin?tls=true&authSource=admin", mapsConfig.map((e)=>{ return e.dbName; }));
   await ftpStorage.connect("ftpupload.net", "if0_35095022", "e9cdJZmBzH");
+  ftpStorage.setRootPath("storage/");
   
   // For test
   io.on("connection", (socket) => {
@@ -186,47 +156,64 @@ async function ioInit() {
   // image storage
   app.post("/upload", async ( req, res )=>{
     console.log("IMAGE UPLOAD");
-    const client = await ftpClient;
-    const img = req.files.img;
-  
+
+    const imgData = req.files.file.data;
+    const imgName = req.files.file.name;
+    const imgPath = req.query.path;
+
     //console.log(img);
-    await client.uploadFrom(getReadable(img.data), "camp23map/" + req.files.img.name);
+    const result = await ftpStorage.uploadFile(imgData, imgPath, imgName);
     console.log('upload ended');
-    res.send('success');
+    res.send(result);
   });
 
+  app.get("/imgget", async ( req, res )=>{
+    console.log("Get img");
+    
+    const fileData = await ftpStorage.downloadFile("storage/imgs/f2.png");
+    console.log(fileData);
+    res.send(fileData);
+  });
+
+  app.use('/bin/imgs/maps', async ( req, res, next )=>{
+    res.send(await ftpStorage.downloadFile('maps' + req.path));
+    next();
+  });
+
+  app.use('/bin', express.static("../bin"));
+
+  app.use('/', (req, res, next )=>{
+    if (req.path == '/')
+    {
+      res.redirect('viewer.html');
+      return;
+    }
+
+    if (enableKeys > 0)
+    {
+      for (var i = 0; i < pages.length; i++)
+      {
+        if (req.path != pages[i].page)
+          continue;
+
+        if (getAccessLevel(req) < pages[i].accessLevel)
+        {
+          console.log("Access denied!!!!!!");
+          if (enableKeys == 2)
+            res.redirect("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+          else
+            res.sendStatus(404);
+          return;
+        }
+      }
+    }
+    next(); 
+  }, express.static("../dist"));
+  
   server.listen(3047, () => {
     console.log(`Server started on port ${server.address().port}`);
   });
 }
 
-const ftpClient = ftpInit();
-
-app.post("/upload", async ( req, res )=>{
-  console.log("IMAGE UPLOAD");
-  const client = await ftpClient;
-  const img = req.files.img;
-  const imgName = 'storage/imgs/' + req.query.path + req.files.img.name;
-
-  console.log('Load img to ' + imgName);
-  console.log(img);
-  await client.uploadFrom(getReadable(img.data), imgName);
-  console.log('upload ended');
-  res.send('success');
-});
-
-app.get("/imgget", async ( req, res )=>{
-  console.log("Get img");
-  console.log("Get img");
-  console.log("Get img");
-  const client = await ftpClient;
-
-  const buf = new StringWriter();
-  console.log('================');
-  await client.downloadTo(buf, "storage/imgs/f2.png");
-  console.log('================');
-  console.log(buf.getBuf());
-  res.send(buf.getBuf());
-});
 ioInit();
 //ftpInit();
