@@ -115,7 +115,7 @@ function getAccessLevel( req ): number {
   if (query == undefined)
     query = req.query;
   if (query == undefined)
-  return 0;
+    return 0;
 
   // 0 - guest
   // 1 - student
@@ -134,10 +134,10 @@ async function ioInit() {
   const server = http.createServer(app);
   const io = new Server(server);
   const DB = new MongoDB;
-  const ftpStorage = new FtpConnection;
+  const ftpStorage = new FtpConnection("ftpupload.net", "if0_35095022", "e9cdJZmBzH");
 
   await DB.init("mongodb+srv://doadmin:i04J9b2t1X853Cuy@db-mongodb-pml30-75e49c39.mongo.ondigitalocean.com/admin?tls=true&authSource=admin", mapsConfig.map((e)=>{ return e.dbName; }));
-  await ftpStorage.connect("ftpupload.net", "if0_35095022", "e9cdJZmBzH");
+  //await ftpStorage.connect();
   ftpStorage.setRootPath("pml30map.rf.gd/htdocs/storage/");
   const config = await ftpStorage.downloadFile("config.json");
   
@@ -165,7 +165,7 @@ async function ioInit() {
   });
 
   app.get("/download", async ( req, res )=>{
-    res.send(await ftpStorage.downloadFile(req.query.file));
+    res.send(await ftpStorage.downloadFile((req.query.file as string).split('?')[0]));
   });
 
   app.use('/bin', express.static("../bin"));

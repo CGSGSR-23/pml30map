@@ -73,12 +73,21 @@ export class FtpConnection {
   protected client = new ftp.Client();
   protected rootPath: string = "";
   ftpCmdStack = new CommandStack;
+  host: string;
+  user: string;
+  password: string;
 
-  async connect( host: string, user: string, password: string ) {
+  constructor( newHost: string, newUser: string, newPassword: string ) {
+    this.host = newHost;
+    this.user = newUser;
+    this.password = newPassword;
+  }
+
+  async connect() {
     await this.client.access({
-      host: host,
-      user: user,
-      password: password,
+      host: this.host,
+      user: this.user,
+      password: this.password,
       secure: true
     });
   }
@@ -94,6 +103,8 @@ export class FtpConnection {
     const res = await this.ftpCmdStack.pushCommand(async ()=>{
       var res = undefined;
       try {
+        if (this.client.closed)
+          await this.connect();
         res = (await this.client.uploadFrom(getReadStream(new Uint8Array(fileData)), this.rootPath + path + dest)).code;
       } catch (error) {
         console.log("FTP upload file ERROR -- " + error);
@@ -112,6 +123,8 @@ export class FtpConnection {
 
     await this.ftpCmdStack.pushCommand(async ()=>{
       try {
+        if (this.client.closed)
+          await this.connect();
         await this.client.downloadTo(buf, this.rootPath + fileName);
       } catch (error) {
         console.log("FTP download file ERROR -- " + error);

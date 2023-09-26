@@ -33,7 +33,7 @@ export class MapView {
     
     var img = new Image();
     //console.log(this.mapConfig.storageURL + fileName);
-    img.src = "download?file=" + "/maps/" + this.mapConfig.name + "/" + fileName;
+    img.src = "download?file=" + "maps/" + this.mapConfig.name + "/" + fileName;
     return new Promise( async (resolve) => {
       img.onload = ()=>{
         console.log("SDFJSDFLK");
