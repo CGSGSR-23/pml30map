@@ -287,6 +287,7 @@ export class UniformBuffer implements ShaderBindable {
   gl: WebGL2RenderingContext;
   id: WebGLBuffer;
   size: number;
+  bufferName: string = "materialUBO";
 
   /**
    * Buffer create function
@@ -308,8 +309,14 @@ export class UniformBuffer implements ShaderBindable {
    * @param program Shader to bind to
    * @param block Block to bind object to shader to
   */
- bind(program: Shader, block: number): void {
-    this.gl.bindBufferBase(WebGL2RenderingContext.UNIFORM_BUFFER, block, this.id);
+  bind(program: Shader, block: number): void {
+    let gl = this.gl;
+    let location = gl.getUniformBlockIndex(program.program, this.bufferName);
+
+    if (location != gl.INVALID_INDEX) {
+      gl.uniformBlockBinding(program.program, location, block);
+      gl.bindBufferBase(gl.UNIFORM_BUFFER, block, this.id);
+    }
   } /* bind */
   
   /**
@@ -790,6 +797,7 @@ export class Topology {
         break;
       }
     }
+    tpl.idx = [];
 
     return tpl;
   } /* model_obj */

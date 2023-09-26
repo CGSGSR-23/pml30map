@@ -16,7 +16,7 @@ uniform cameraBuffer {
   mat4 transformWorld;
 };
 
-uniform sampler2D Tex0;
+uniform sampler2D Tex1;
 
 #define PI 3.14159265358979
 
@@ -31,6 +31,6 @@ void main() {
     azimuth / PI
   );
 
-  outColorID = vec4(texture(Tex0, fetchCoord).xyz, currentID);
+  outColorID = vec4(texture(Tex1, fetchCoord).xyz, currentID);
   outPosition = vec4(0, 0, 0, 0);
 } /* main */

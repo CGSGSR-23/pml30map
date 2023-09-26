@@ -170,6 +170,7 @@ export class System {
     // Create uniform buffer with ??? size.
     result.camera = new Camera();
     result.cameraUniformbuffer = UniformBuffer.create(gl);
+    result.cameraUniformbuffer.bufferName = "cameraBuffer";
     result.cameraUniformbuffer.writeData(new Float32Array(36));
 
     result.timer = new Timer();

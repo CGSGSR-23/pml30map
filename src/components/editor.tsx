@@ -8,13 +8,14 @@ import { MinimapEditor } from "./minimap_editor";
 import { System, Unit } from "../system/system";
 import { Topology, Material, Model, UniformBuffer } from "../system/render_resources";
 import { Skysphere } from "../units/skysphere";
+import { BaseConstruction } from "../units/base_construction";
 import * as CameraController from "../units/camera_controller";
 import * as LinMath from '../system/linmath';
 
 class Triangle implements Unit {
   skysphere: Skysphere;
+  baseConstruction: BaseConstruction;
   doSuicide: boolean;
-  model: Model;
 
   /**
    * Unit create function
@@ -23,13 +24,10 @@ class Triangle implements Unit {
    */
   static async create(system: System): Promise<Triangle> {
     let unit = new Triangle();
-    let tpl = Topology.tetrahedron();
-    let material = await Material.create(system.gl, "bin/shaders/model");
 
-    system.addUnit(await Skysphere.create(system, "bin/imgs/default.png"));
-    system.addUnit(CameraController.Arcball.create(system));
-    unit.model = Model.fromTopology(system.gl, tpl, material);
-
+    unit.skysphere = await system.createUnit(Skysphere.create, "bin/imgs/default.png") as Skysphere;
+    unit.baseConstruction = await system.createUnit(BaseConstruction.create, "bin/models/pml30map.obj") as BaseConstruction;
+    system.createUnit(CameraController.Arcball.create);
     return unit;
   } /* create */
 
@@ -38,7 +36,7 @@ class Triangle implements Unit {
    * @param system System reference
    */
   response(system: System): void {
-    system.drawModel(this.model);
+    this.baseConstruction.setCutFloor(Math.floor(Math.abs(Math.sin(system.timer.time)) * 10.0));
   } /* response */
 } /* class Triangle */
 
@@ -63,28 +61,8 @@ interface NodeSettingsState {
   floorRef: React.MutableRefObject<any>;
 } /* NodeSettingsState */
 
-class BaseConstruction implements Unit {
-  doSuicide: boolean;
 
-  material: Material;
-  uniformBuffer: UniformBuffer;
-  model: Model;
-  cutFloor: number;
 
-  lightingDirection: LinMath.Vec3;
-
-  static create(system: System) {
-
-  } /* create */
-
-  /**
-   * Unit response function
-   * @param system Class to response by
-   */
-  response(system: System): void {
-
-  } /* response */
-} /* BaseConstruction */
 
 class NodeSettings extends React.Component<NodeSettingsProps, NodeSettingsState> {
   constructor( props: NodeSettingsProps ) {
@@ -94,7 +72,7 @@ class NodeSettings extends React.Component<NodeSettingsProps, NodeSettingsState>
       floorRef: React.createRef(),
       skysphereRef: React.createRef(),
     };
-  }
+  } /* constructor */
 
   render() {
     return (<>

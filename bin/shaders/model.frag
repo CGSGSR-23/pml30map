@@ -19,10 +19,8 @@ uniform cameraBuffer {
 };
 
 void main() {
-  const vec3 lightDirection = normalize(vec3(0.30, 0.47, 0.80));
-
-  float coef = length(drawPosition);//dot(normalize(drawNormal), lightDirection);
-  outColorID = vec4(coef, coef, coef, 1);
+  float coef = length(drawPosition);
+  outColorID = vec4(coef, coef, coef, currentID);
   outPosition = vec4(drawPosition, 1);
 } /* main */
 
