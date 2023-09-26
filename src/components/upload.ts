@@ -15,3 +15,4 @@ export async function uploadFile( file: File, path: string, name: string ) {
     body: formData,
   });
 }
+

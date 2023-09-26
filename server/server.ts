@@ -1,16 +1,12 @@
 const http = require("http");
 const express = require("express");
 const morgan = require("morgan");
-//const ws = require("ws");
-//const path = require("path");
 const { Server } = require("socket.io");
 const fileupload = require('express-fileupload');
-//const { MongoDB } = require('./mongodb.ts');
-//const { MongoDBCollectionNamespace } = require("mongodb");
-//const { allowedNodeEnvironmentFlags } = require("process");
 import { Vec2 } from "../src/system/linmath";
 import { MongoDB } from "./mongodb";
-import { Client, MapInfo } from "./client";
+import { Client } from "./client";
+import { MapConfig } from "./map_config";
 import * as fs from "fs";  
 import { FtpConnection } from "./storage";
 
@@ -18,10 +14,11 @@ const app = express();
 app.use(morgan("combined"));
 app.use(fileupload());
 
-const mapsConfig: MapInfo[] = [
+const mapsConfig: MapConfig[] = [
   {
     name: "pml30map",
     dbName: "pml30map",
+    storageURL: "http://pml30map.rf.gd/storage/maps/pml30map/",
     minimapInfo: {
       name: 'PML 30',
       firstFloor: -1,
@@ -33,27 +30,27 @@ const mapsConfig: MapInfo[] = [
       modelEndPos: new Vec2(11.499, 16.445),
       floors: [
         {
-          fileName: 'maps/pml30map/imgs/minimap/f-1.png',
+          fileName: 'imgs/minimap/f-1.png',
           floorIndex: -1,
         },
         {
-          fileName: 'maps/pml30map/imgs/minimap/f0.png',
+          fileName: 'imgs/minimap/f0.png',
           floorIndex: 0,
         },
         {
-          fileName: 'maps/pml30map/imgs/minimap/f1.png',
+          fileName: 'imgs/minimap/f1.png',
           floorIndex: 1,
         },
         {
-          fileName: 'maps/pml30map/imgs/minimap/f2.png',
+          fileName: 'imgs/minimap/f2.png',
           floorIndex: 2,
         },
         {
-          fileName: 'maps/pml30map/imgs/minimap/f3.png',
+          fileName: 'imgs/minimap/f3.png',
           floorIndex: 3,
         },
         {
-          fileName: 'maps/pml30map/imgs/minimap/f4.png',
+          fileName: 'imgs/minimap/f4.png',
           floorIndex: 4,
         },
       ],
@@ -62,6 +59,7 @@ const mapsConfig: MapInfo[] = [
   {
     name: "camp23map",
     dbName: "camp23map",
+    storageURL: "http://pml30map.rf.gd/storage/camp23map/",
     minimapInfo: {
       name: 'Sum 23 camp',
       firstFloor: 0,
@@ -73,7 +71,7 @@ const mapsConfig: MapInfo[] = [
       modelEndPos: new Vec2(-7.370, 17.2),
       floors: [
         {
-          fileName: 'minimap/camp23map/f0.png',
+          fileName: 'imgs/minimap/f0.png',
           floorIndex: 0,
         },
       ],
@@ -81,10 +79,7 @@ const mapsConfig: MapInfo[] = [
   }
   
 ];
-
-//app.use('/bin/models/worldmap', (req, res, next )=>{
-//  res.sendFile(path.normalize(__dirname + `/../bin/models/${availableDB[curDBIndex].name}.obj`));
-//});
+//console.log(JSON.stringify(mapsConfig));
 
 const enableKeys: number = 2;
                       // 0 - no check
@@ -93,7 +88,6 @@ const enableKeys: number = 2;
 
 const studentKey = "R1BNTDMwTUFQX0FDQ0VTU19LRVlfQURNSU4=";
 const adminKey = "R1BNTDMwTUFQX0FDQ0VTU19LRVlfU1RVREVOVA==";
-
 
 const pages: { page: string,  source: string, accessLevel: number }[] = [
   {
@@ -136,7 +130,6 @@ function getAccessLevel( req ): number {
   return accessLevel;
 }
 
-
 async function ioInit() {
   const server = http.createServer(app);
   const io = new Server(server);
@@ -145,14 +138,18 @@ async function ioInit() {
 
   await DB.init("mongodb+srv://doadmin:i04J9b2t1X853Cuy@db-mongodb-pml30-75e49c39.mongo.ondigitalocean.com/admin?tls=true&authSource=admin", mapsConfig.map((e)=>{ return e.dbName; }));
   await ftpStorage.connect("ftpupload.net", "if0_35095022", "e9cdJZmBzH");
-  ftpStorage.setRootPath("storage/");
+  ftpStorage.setRootPath("pml30map.rf.gd/htdocs/storage/");
+  const config = await ftpStorage.downloadFile("config.json");
   
   // For test
-  io.on("connection", (socket) => {
+  io.on("connection", async (socket) => {
     console.log('New connection');
-    new Client(mapsConfig, DB, socket, getAccessLevel(socket.request));
+    
+    //console.log(JSON.parse(config.toString()));
+    //console.log(JSON.stringify(mapsConfig));
+    new Client(ftpStorage, mapsConfig, DB, socket, getAccessLevel(socket.request));
   });
-
+  
   // image storage
   app.post("/upload", async ( req, res )=>{
     console.log("IMAGE UPLOAD");
@@ -167,17 +164,8 @@ async function ioInit() {
     res.send(result);
   });
 
-  app.get("/imgget", async ( req, res )=>{
-    console.log("Get img");
-    
-    const fileData = await ftpStorage.downloadFile("storage/imgs/f2.png");
-    console.log(fileData);
-    res.send(fileData);
-  });
-
-  app.use('/bin/imgs/maps', async ( req, res, next )=>{
-    res.send(await ftpStorage.downloadFile('maps' + req.path));
-    next();
+  app.get("/download", async ( req, res )=>{
+    res.send(await ftpStorage.downloadFile(req.query.file));
   });
 
   app.use('/bin', express.static("../bin"));

@@ -1,14 +1,10 @@
 import { MongoDB } from "./mongodb";
-import { MapSetInfo } from "../src/components/minimap";
+import { MinimapInfo } from "./map_config";
 import { Vec3 } from "../src/system/linmath";
+import { MapConfig } from "./map_config";
+import { FtpConnection } from "./storage";
 
 const defaultMapName = 'pml30map';
-
-export interface MapInfo {
-  name: string;
-  dbName: string;
-  minimapInfo: MapSetInfo;
-}
 
 export function LogMsg( msgName, input, output ) {
   console.log(`<--- MESSAGE '${msgName}' --->`);
@@ -124,7 +120,7 @@ export class Client {
     });
   } /* End of 'setupNodeRequests' function */
 
-  constructor( mapsConfig: MapInfo[], newMongo: MongoDB, socket, newAccessLevel: number ) {
+  constructor( ftpStorage: FtpConnection, mapsConfig: MapConfig[], newMongo: MongoDB, socket, newAccessLevel: number ) {
 
     this.mongodb = newMongo;
     console.log(`Client connected with id: ${socket.id}`);
@@ -159,17 +155,17 @@ export class Client {
     });
 
     // Minimap requests
-    socket.on("getMapSetInfoReq", ( res )=>{
+    socket.on("getMapConfigReq", ( res )=>{
 
       console.log(this.dbName);
       for (let i = 0; i < mapsConfig.length; i++)
         if (mapsConfig[i].name == this.dbName)
         {
-          LogMsg("getMapSetInfoReq", "", mapsConfig[i]);
+          LogMsg("getMapConfigReq", "", mapsConfig[i]);
           res(mapsConfig[i]);
           return;
         }
-      LogMsg("getMapSetInfoReq", "", {});
+      LogMsg("getMapConfigReq", "", {});
       res({});
     });
 

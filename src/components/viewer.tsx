@@ -1,15 +1,16 @@
-import { Minimap, FloorInfo } from "./minimap";
-import { MapInfo } from "../../server/client";
+import { Minimap } from "./minimap";
+import { MapConfig } from "../../server/map_config";
 import { Vec2, Vec3 } from "../system/linmath";
 import React, { createRef } from "react";
-import { Connection } from "../socket";
+//import { Connection } from "../socket";
 import { URI } from "../socket";
 import { queryToStr, getQuery } from "./support";
 import { System, Unit } from "../system/system";
+import { MapView } from "../map_view";
 
 interface ViewerProps {
   accessLevel: number;
-  socket: Connection;
+  socket: MapView;
 }
 
 interface ViewerState {
@@ -130,8 +131,8 @@ export class Viewer extends React.Component<ViewerProps, ViewerState> {
   async componentDidMount() {
     this.systemInit();
 
-    const allMaps = (await this.props.socket.send('getAllMapsReq')) as string[];
-    const map: MapInfo = (await this.props.socket.send("getMapSetInfoReq")) as MapInfo;
+    const allMaps = (await this.props.socket.socket.send('getAllMapsReq')) as string[];
+    const map: MapConfig = (await this.props.socket.socket.send("getMapConfigReq")) as MapConfig;
     
     await this.asyncSetState({
       switchMenuJSX: (
@@ -149,7 +150,7 @@ export class Viewer extends React.Component<ViewerProps, ViewerState> {
         </>
       ),
       minimapJSX: (
-        <Minimap ref={this.state.minimapRef} mapInfo={map.minimapInfo} callbacks={{
+        <Minimap ref={this.state.minimapRef} socket={this.props.socket} callbacks={{
           onclick: async ( minimap: Minimap, floorIndex: number, pos: Vec2 )=>{
             console.log(`On click ${floorIndex} pos: [${pos.x}, ${pos.y}]`);
             const nearest = await this.props.socket.getNearest(minimap.toWorld(pos, floorIndex), floorIndex);

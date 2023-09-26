@@ -1,12 +1,12 @@
 import React, { createRef } from "react";
-import { MapInfo } from "../../server/client";
-import { Connection } from "../socket";
-import { FloorInfo } from "./minimap";
+import { MapConfig } from "../../server/map_config";
+import { FloorInfo } from "../../server/map_config";
 import { Vec2 } from "../system/linmath";
 import { loadImg } from "./support";
 import { uploadFile } from "./upload";
+import { MapView } from "../map_view";
 export interface MinimapEditorProps {
-  socket: Connection;
+  socket: MapView;
   closeCallBack: ()=>void;
 }
 
@@ -15,7 +15,7 @@ export interface MinimapEditorState {
   imgFileRef: React.MutableRefObject<any>;
   imgListJSX: JSX.Element;
   editFloor: FloorInfo;
-  mapInfo: MapInfo;
+  mapInfo: MapConfig;
 }
 
 export class MinimapEditor extends React.Component<MinimapEditorProps, MinimapEditorState> {
@@ -42,12 +42,16 @@ export class MinimapEditor extends React.Component<MinimapEditorProps, MinimapEd
   }
 
   async updateEdit() {
-    this.curImg = await loadImg(this.state.editFloor.fileName) as HTMLImageElement;
+    console.log('LOAD IMAGE');
+    this.curImg = await this.props.socket.loadImg(this.state.editFloor.fileName) as HTMLImageElement;
+    console.log(this.curImg);
     this.updateCanvas();
   }
 
   async reloadImg() {
-    this.curImg = await loadImg(this.state.editFloor.fileName + "?" + Math.random()) as HTMLImageElement;
+    console.log('LOAD IMAGE');
+    this.curImg = await this.props.socket.loadImg(this.state.editFloor.fileName + "?" + Math.random()) as HTMLImageElement;
+    console.log(this.curImg);
     this.updateCanvas();
   }
 
@@ -112,7 +116,7 @@ export class MinimapEditor extends React.Component<MinimapEditorProps, MinimapEd
   }
 
   async componentDidMount() {
-    const mapInfo: MapInfo = (await this.props.socket.send("getMapSetInfoReq")) as MapInfo;
+    const mapInfo: MapConfig = (await this.props.socket.socket.send("getMapConfigReq")) as MapConfig;
 
     this.setState({ mapInfo: mapInfo });
   }

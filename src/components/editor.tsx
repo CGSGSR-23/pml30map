@@ -1,4 +1,3 @@
-import { MapInfo } from "../../server/client";
 import React from "react";
 import { Connection } from "../socket";
 import { URI } from "../socket";
@@ -11,6 +10,8 @@ import { Skysphere } from "../units/skysphere";
 import { BaseConstruction } from "../units/base_construction";
 import * as CameraController from "../units/camera_controller";
 import * as LinMath from '../system/linmath';
+import { MapEdit } from "../map_edit";
+import { MapConfig } from "../../server/map_config";
 
 class Triangle implements Unit {
   skysphere: Skysphere;
@@ -120,7 +121,7 @@ class NodeSettings extends React.Component<NodeSettingsProps, NodeSettingsState>
 } /* NodeSettings */
 
 interface EditorProps {
-  socket: Connection;
+  socket: MapEdit;
 }
 
 interface EditorState {
@@ -255,11 +256,11 @@ export class Editor extends React.Component<EditorProps, EditorState> {
     this.systemInit();
 
     // Get context
-    const allMaps = (await this.props.socket.send('getAllMapsReq')) as string[];
-    const map: MapInfo = (await this.props.socket.send("getMapSetInfoReq")) as MapInfo;
+    const allMaps = (await this.props.socket.socket.send('getAllMapsReq')) as string[];
+    //const map: MapConfig = (await this.props.socket.socket.send("getMapSetInfoReq")) as MapConfig;
     const query = this.getQuery();
 
-    this.upperFloor = map.minimapInfo.firstFloor + map.minimapInfo.floorCount - 1;
+    this.upperFloor = this.props.socket.mapConfig.minimapInfo.firstFloor + this.props.socket.mapConfig.minimapInfo.floorCount - 1;
     
     this.asyncSetState({
       menuJSX: (<>
@@ -276,7 +277,7 @@ export class Editor extends React.Component<EditorProps, EditorState> {
             flexDirection: 'row-reverse'
           }}>
             {allMaps.map((m)=>{
-              if (m == map.name)
+              if (m == this.props.socket.mapConfig.name)
                 return (<></>);
 
               return (<><input type="button" value={m} onClick={()=>{
@@ -287,14 +288,14 @@ export class Editor extends React.Component<EditorProps, EditorState> {
               }}/><br/></>);
             })}
           </div></>}
-        {map.minimapInfo.floorCount > 1 &&
+        {this.props.socket.mapConfig.minimapInfo.floorCount > 1 &&
         <div className="flexRow spaceBetween">
           Visible floors:
           <div className="flexRow">
-            <input ref={this.state.floorRef} type="range" min={map.minimapInfo.firstFloor} max={map.minimapInfo.firstFloor + map.minimapInfo.floorCount} onChange={(e)=>{
+            <input ref={this.state.floorRef} type="range" min={this.props.socket.mapConfig.minimapInfo.firstFloor} max={this.props.socket.mapConfig.minimapInfo.firstFloor + this.props.socket.mapConfig.minimapInfo.floorCount} onChange={(e)=>{
               this.state.floorNumberRef.current.innerText = e.target.value;
               this.upperFloor = parseInt(e.target.value);
-            }} style={{ width: map.minimapInfo.floorCount * 2 + 'em' }}/>
+            }} style={{ width: this.props.socket.mapConfig.minimapInfo.floorCount * 2 + 'em' }}/>
             <div ref={this.state.floorNumberRef} style={{width: '1em'}}>{this.upperFloor}</div>
           </div>
         </div>}

@@ -1,33 +1,15 @@
 import React, { createRef } from 'react';
 import { Vec2, Vec3 } from '../system/linmath';
 import { loadImg } from './support';
-
-export interface FloorInfo {
-  floorIndex: number,
-  fileName: string
-}
-
-export interface MapSetInfo {
-  name: string,
-
-  floorCount: number,
-  firstFloor: number,
-  defFloor: number,
-
-  imgStartPos: Vec2,
-  imgEndPos: Vec2,
-  modelStartPos: Vec2,
-  modelEndPos: Vec2,
-
-  floors: FloorInfo[]
-}
+import { MinimapInfo, FloorInfo } from '../../server/map_config';
+import { MapView } from '../map_view';
 
 interface MinimapCallBacks {
   onclick: ( minimap: Minimap, floorIndex: number, pos: Vec2 )=>void;
 }
 
 interface MinimapProps {
-  mapInfo: MapSetInfo;
+  socket: MapView;
   callbacks: MinimapCallBacks,
 }
 
@@ -51,24 +33,24 @@ export class Minimap extends React.Component<MinimapProps, MinimapState> {
 
     this.state = {
       mapRef: createRef(),
-      curFloorInd: props.mapInfo.defFloor,
+      curFloorInd: props.socket.mapConfig.minimapInfo.defFloor,
     };
 
-    props.mapInfo.imgStartPos = new Vec2(props.mapInfo.imgStartPos.x, props.mapInfo.imgStartPos.y);
-    props.mapInfo.imgEndPos = new Vec2(props.mapInfo.imgEndPos.x, props.mapInfo.imgEndPos.y);
-    props.mapInfo.modelStartPos = new Vec2(props.mapInfo.modelStartPos.x, props.mapInfo.modelStartPos.y);
-    props.mapInfo.modelEndPos = new Vec2(props.mapInfo.modelEndPos.x, props.mapInfo.modelEndPos.y);
+    props.socket.mapConfig.minimapInfo.imgStartPos = new Vec2(props.socket.mapConfig.minimapInfo.imgStartPos.x, props.socket.mapConfig.minimapInfo.imgStartPos.y);
+    props.socket.mapConfig.minimapInfo.imgEndPos = new Vec2(props.socket.mapConfig.minimapInfo.imgEndPos.x, props.socket.mapConfig.minimapInfo.imgEndPos.y);
+    props.socket.mapConfig.minimapInfo.modelStartPos = new Vec2(props.socket.mapConfig.minimapInfo.modelStartPos.x, props.socket.mapConfig.minimapInfo.modelStartPos.y);
+    props.socket.mapConfig.minimapInfo.modelEndPos = new Vec2(props.socket.mapConfig.minimapInfo.modelEndPos.x, props.socket.mapConfig.minimapInfo.modelEndPos.y);
 
-    this.scaleCoef = props.mapInfo.imgEndPos.sub(props.mapInfo.imgStartPos).length() /
-                     props.mapInfo.modelEndPos.sub(props.mapInfo.modelStartPos).length();
+    this.scaleCoef = props.socket.mapConfig.minimapInfo.imgEndPos.sub(props.socket.mapConfig.minimapInfo.imgStartPos).length() /
+                     props.socket.mapConfig.minimapInfo.modelEndPos.sub(props.socket.mapConfig.minimapInfo.modelStartPos).length();
     console.log("Coef");
-    console.log(props.mapInfo.modelEndPos.sub(props.mapInfo.modelStartPos).length());
+    console.log(props.socket.mapConfig.minimapInfo.modelEndPos.sub(props.socket.mapConfig.minimapInfo.modelStartPos).length());
     console.log(this.scaleCoef);
 
     //for (let i = 0; i < props.mapInfo.floorCount; i++)
     //  this.floorImgs[props.mapInfo.floors[i].floorIndex] = loadImg(props.mapInfo.floors[i].fileName);
-    props.mapInfo.floors.map(async (f)=>{
-      this.floorImgs[f.floorIndex] = loadImg(f.fileName);
+    props.socket.mapConfig.minimapInfo.floors.map(async (f)=>{
+      this.floorImgs[f.floorIndex] = this.props.socket.loadImg(f.fileName);
     });
   }
 
@@ -102,7 +84,7 @@ export class Minimap extends React.Component<MinimapProps, MinimapState> {
   }
 
   componentDidMount(): void {
-    this.switchToFloor(this.props.mapInfo.defFloor);
+    this.switchToFloor(this.props.socket.mapConfig.minimapInfo.defFloor);
   }
 
   switchToFloor( floorInd: number ): void {
@@ -118,7 +100,7 @@ export class Minimap extends React.Component<MinimapProps, MinimapState> {
   }
 
   toWorld( pos: Vec2, floorIndex: number ): Vec3 {
-    let hPos = (new Vec2(pos.x, pos.y)).sub(this.props.mapInfo.imgStartPos).mul(1 / this.scaleCoef).add(this.props.mapInfo.modelStartPos);
+    let hPos = (new Vec2(pos.x, pos.y)).sub(this.props.socket.mapConfig.minimapInfo.imgStartPos).mul(1 / this.scaleCoef).add(this.props.socket.mapConfig.minimapInfo.modelStartPos);
 
     return new Vec3(hPos.x, floorIndex, hPos.y);
   }
@@ -126,7 +108,7 @@ export class Minimap extends React.Component<MinimapProps, MinimapState> {
   toMap( pos: Vec3 ): Vec2 {
     let hPos = new Vec2(pos.x, pos.z);
 
-    return hPos.sub(this.props.mapInfo.modelStartPos).mul(this.scaleCoef).add(this.props.mapInfo.imgStartPos)
+    return hPos.sub(this.props.socket.mapConfig.minimapInfo.modelStartPos).mul(this.scaleCoef).add(this.props.socket.mapConfig.minimapInfo.imgStartPos)
   }
 
   render() {
@@ -164,8 +146,8 @@ export class Minimap extends React.Component<MinimapProps, MinimapState> {
               this.props.callbacks.onclick(this, this.state.curFloorInd, pos);
             }
           }}/>
-          {this.props.mapInfo.floorCount > 1 && <div className="flexColumn">
-            {this.props.mapInfo.floors.map(( f: FloorInfo )=>{
+          {this.props.socket.mapConfig.minimapInfo.floorCount > 1 && <div className="flexColumn">
+            {this.props.socket.mapConfig.minimapInfo.floors.map(( f: FloorInfo )=>{
               return (<input type="button" className={this.state.curFloorInd == f.floorIndex ? "active" : ""} value={f.floorIndex} onClick={()=>{
                 this.switchToFloor(f.floorIndex);
               }}/>);
