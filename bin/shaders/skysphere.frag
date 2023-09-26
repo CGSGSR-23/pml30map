@@ -2,8 +2,8 @@
 
 precision highp float;
 
-layout(location = 0) out vec4 outColorID;
-layout(location = 1) out vec4 outPosition;
+layout(location = 0) out vec4 outColor;
+layout(location = 1) out vec4 outPositionID;
 
 in vec3 drawDirection;
 
@@ -31,6 +31,6 @@ void main() {
     azimuth / PI
   );
 
-  outColorID = vec4(texture(Tex1, fetchCoord).xyz, currentID);
-  outPosition = vec4(0, 0, 0, 0);
+  outColor = vec4(texture(Tex1, fetchCoord).xyz, currentID);
+  outPositionID = vec4(0, 0, 0, currentID);
 } /* main */

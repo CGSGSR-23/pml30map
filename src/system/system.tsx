@@ -17,6 +17,7 @@ interface UnitPromiseFunction {
  */
 export interface Unit {
   doSuicide: boolean;
+  unitType: string;
 
   /**
    * @brief Unit per-frame response function
@@ -233,6 +234,32 @@ export class System {
     this.doRun = false;
     clearInterval(this.mainLoopTimeout);
   } /* stopMainLoop */
+
+  getScreenUnitAndPosition(x: number, y: number): {unit: Unit | null, position: Vec3} {
+    let v = this.target.getAttachmentValue(1, x, y);
+    if (v.w >= 0 && v.w < this.units.length)
+      return {
+        unit: this.units[v.w],
+        position: new Vec3(v.x, v.y, v.z)
+      };
+    return {
+      unit: null,
+      position: new Vec3(v.x, v.y, v.z),
+    };
+  } /* getUnitAndPosition */
+
+  getScreenUnit(x: number, y: number): Unit | null {
+    let unitIndex = this.target.getAttachmentValue(1, x, y).x;
+    if (unitIndex >= 0 && unitIndex < this.units.length)
+      return this.units[unitIndex];
+    return null;
+  } /* getUnitByCoord */
+
+  getScreenPosition(x: number, y: number): Vec3 {
+    let coord = this.target.getAttachmentValue(1, x, y);
+
+    return new Vec3(coord.x, coord.y, coord.z);
+  } /* getScreenPosition */
 
   /**
    * Main loop running function

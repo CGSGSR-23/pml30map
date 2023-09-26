@@ -10,6 +10,7 @@ import {Vec3} from '../system/linmath';
  * Skysphere class
  */
 export class Skysphere implements Unit {
+  unitType: string = "Skysphere";
   doSuicide: boolean;
 
   model: Model;
@@ -34,9 +35,17 @@ export class Skysphere implements Unit {
     return result;
   } /* create */
 
-  setImage(path: string) {
-    this.skyTexture.load(path);
-  } /* setImage */
+  private _skyTexturePath: string;
+  set skyTexturePath(path: string) {
+    if (path !== this._skyTexturePath) {
+      this.skyTexture.load(path);
+      this._skyTexturePath = path;
+    }
+  } /* skyTexturePath */
+
+  get skyTexturePath(): string {
+    return this._skyTexturePath;
+  } /* skyTexturePath */
 
   /**
    * Response function

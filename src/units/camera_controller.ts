@@ -2,6 +2,7 @@ import {System, Unit} from '../system/system';
 import {Vec3} from '../system/linmath';
 
 export class Arcball implements Unit {
+  unitType: string = "ArcballCameraController";
   doSuicide: boolean;
 
   constructor(system: System) {

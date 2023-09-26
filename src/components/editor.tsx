@@ -1,5 +1,4 @@
 import React from "react";
-import { Connection } from "../socket";
 import { URI } from "../socket";
 import { queryToStr } from "./support";
 import { MinimapEditor } from "./minimap_editor";
@@ -13,7 +12,11 @@ import * as LinMath from '../system/linmath';
 import { MapEdit } from "../map_edit";
 import { MapConfig } from "../../server/map_config";
 
-class Triangle implements Unit {
+/**
+ * Editor unit
+ */
+class EditorUnit implements Unit {
+  unitType: string = "EditorUnit";
   skysphere: Skysphere;
   baseConstruction: BaseConstruction;
   doSuicide: boolean;
@@ -21,10 +24,10 @@ class Triangle implements Unit {
   /**
    * Unit create function
    * @param system System
-   * @returns Promise of new triangle unit
+   * @returns Promise of new EditorUnit unit
    */
-  static async create(system: System): Promise<Triangle> {
-    let unit = new Triangle();
+  static async create(system: System): Promise<EditorUnit> {
+    let unit = new EditorUnit();
 
     unit.skysphere = await system.createUnit(Skysphere.create, "bin/imgs/default.png") as Skysphere;
     unit.baseConstruction = await system.createUnit(BaseConstruction.create, "bin/models/pml30map.obj") as BaseConstruction;
@@ -37,9 +40,57 @@ class Triangle implements Unit {
    * @param system System reference
    */
   response(system: System): void {
-    this.baseConstruction.setCutFloor(Math.floor(Math.abs(Math.sin(system.timer.time)) * 10.0));
+    // Global response
   } /* response */
-} /* class Triangle */
+} /* class EditorUnit */
+
+class Node implements Unit {
+  unitType: string = "Node";
+  doSuicide: boolean;
+  uri: URI;
+
+  response(system: System): void {
+
+  } /* response */
+} /* Node */
+
+class Connection implements Unit {
+  unitType: string = "Connection";
+  doSuicide: boolean;
+  uri: URI;
+
+  response(system: System): void {
+
+  } /* response */
+} /* Connection */
+
+class ObjectSelector implements Unit {
+  unitType: string = "NodeSelector";
+  doSuicide: boolean
+
+  static create(system: System): ObjectSelector {
+    let unit = new ObjectSelector();
+
+    system.canvas.addEventListener('mousemove', (event: MouseEvent) => {
+      let unit = system.getScreenUnit(event.clientX, event.clientY);
+
+      if (unit === null)
+        return;
+
+      if (unit.unitType === "Node") {
+
+      } else if (unit.unitType === "Connection") {
+
+      }
+    });
+
+    return unit;
+  } /* create */
+
+  response(system: System): void {
+
+  } /* response */
+} /* NodeSelector */
 
 interface NodeData {
   uri: URI;
@@ -144,7 +195,7 @@ interface QueryData {
  */
 export class Editor extends React.Component<EditorProps, EditorState> {
   system: System = null;
-  upperFloor: number = 0;
+  editor: EditorUnit;
   curQuery: QueryData = {};
 
   asyncSetState( newState: any ) {
@@ -244,23 +295,18 @@ export class Editor extends React.Component<EditorProps, EditorState> {
     );
   } /* End of 'render' function */
 
-
-  async systemInit() {
+  async componentDidMount() {
+    // system initialization
     this.system = await System.create(this.state.canvasRef.current);
     this.system.resize(this.state.canvasRef.current.clientWidth, this.state.canvasRef.current.clientHeight);
-    this.system.createUnit(Triangle.create);
+    this.editor = await this.system.createUnit(EditorUnit.create) as EditorUnit;
     this.system.runMainLoop();
-  } /* systemInit */
-
-  async componentDidMount() {
-    this.systemInit();
 
     // Get context
     const allMaps = (await this.props.socket.socket.send('getAllMapsReq')) as string[];
-    //const map: MapConfig = (await this.props.socket.socket.send("getMapSetInfoReq")) as MapConfig;
     const query = this.getQuery();
 
-    this.upperFloor = this.props.socket.mapConfig.minimapInfo.firstFloor + this.props.socket.mapConfig.minimapInfo.floorCount - 1;
+    this.editor.baseConstruction.topFloor = this.props.socket.mapConfig.minimapInfo.firstFloor + this.props.socket.mapConfig.minimapInfo.floorCount - 1;
     
     this.asyncSetState({
       menuJSX: (<>
@@ -294,9 +340,9 @@ export class Editor extends React.Component<EditorProps, EditorState> {
           <div className="flexRow">
             <input ref={this.state.floorRef} type="range" min={this.props.socket.mapConfig.minimapInfo.firstFloor} max={this.props.socket.mapConfig.minimapInfo.firstFloor + this.props.socket.mapConfig.minimapInfo.floorCount} onChange={(e)=>{
               this.state.floorNumberRef.current.innerText = e.target.value;
-              this.upperFloor = parseInt(e.target.value);
+              this.editor.baseConstruction.topFloor = parseInt(e.target.value);
             }} style={{ width: this.props.socket.mapConfig.minimapInfo.floorCount * 2 + 'em' }}/>
-            <div ref={this.state.floorNumberRef} style={{width: '1em'}}>{this.upperFloor}</div>
+            <div ref={this.state.floorNumberRef} style={{width: '1em'}}>{this.editor.baseConstruction.topFloor}</div>
           </div>
         </div>}
         <input type="button" value="Minimap settings" onClick={()=>{
@@ -306,4 +352,3 @@ export class Editor extends React.Component<EditorProps, EditorState> {
     });
   } /* componentDidMount */
 } /* End of 'Viewer' class */
-

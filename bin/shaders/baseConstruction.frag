@@ -2,8 +2,8 @@
 
 precision highp float;
 
-layout(location = 0) out vec4 outColorID;
-layout(location = 1) out vec4 outPosition;
+layout(location = 0) out vec4 outColor;
+layout(location = 1) out vec4 outPositionID;
 
 in vec2 drawTexCoord;
 in vec3 drawPosition;
@@ -33,8 +33,8 @@ void main() {
   int checkerCoef = (int(floor(drawPosition.x / checkerScale)) ^ int(floor(drawPosition.y / checkerScale)) ^ int(floor(drawPosition.z / checkerScale))) & 1;
   float diffuseCoef = dot(drawNormal, lightDir) * (0.85 + 0.15 * float(checkerCoef));
 
-  outColorID = vec4(baseConstructionColor * vec3(abs(min(diffuseCoef, 1.0))), currentID);
-  outPosition = vec4(drawPosition, 1);
+  outColor = vec4(baseConstructionColor * vec3(abs(min(diffuseCoef, 1.0))), 1.0);
+  outPositionID = vec4(drawPosition, currentID);
 } /* main */
 
 /* target.frag */
