@@ -1,6 +1,7 @@
 import { Connection, URI, NodeData, ConnectionData } from "./socket";
 import { Vec3 } from "./system/linmath";
 import { MapView } from "./map_view";
+import { MinimapEditReq } from "../server/client";
 
 // interface EditClientToServerEvents {
 //   addNode: ( data: NodeData )=>URI;
@@ -26,6 +27,11 @@ export class MapEdit extends MapView {
 
   constructor() {
     super();
+  }
+
+  // Minimap edit req
+  async editMinimap( req: MinimapEditReq ): Promise<boolean> {
+    return (await this.socket.send("editMinimap", req)) as boolean;
   }
 
   async addNode( data: NodeData ): Promise<URI> {

@@ -22,7 +22,34 @@
   --focus-sub-color: rgb(66, 102, 33);
   --l-focus-sub-color: rgb(96, 138, 56);
 
+  /* Div */
   --div-bg-color: var(--lighting2-color);
   --div-br-color: var(--lighting3-color);
+
+  /* Text */
+  --text-bg-color: var(--shadow-color);
+  --text-br-color: var(--lighting3-color);
+  
+  /* Button */
+  --button-bg-color: var(--sub-color);
+  --button-text-color: var(--text-color);
+
+  --button-hover-color: var(--l-sub-color);
+  --button-hover-text-color: var(--text-color);
+
+  --button-active-color: var(--highlight-sub-color);
+  --button-active-text-color: var(--sub-color);
+
+  --button-focus-color: var(--focus-sub-color);
+  --button-focus-text-color: var(--text-color);
+  
+  --button-focus-hover-color: var(--l-focus-sub-color);
+  --button-focus-hover-text-color: var(--text-color);
+
+  /* Range */
+  --range-bg-color: var(--sub-color);
+  --thumb-hover-color: var(--focus-sub-color);
+  --thumb-active-color: var(--highlight-sub-color);
+
   
 }

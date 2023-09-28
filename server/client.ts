@@ -1,8 +1,9 @@
 import { MongoDB } from "./mongodb";
 import { MinimapInfo } from "./map_config";
-import { Vec3 } from "../src/system/linmath";
+import { Vec2, Vec3 } from "../src/system/linmath";
 import { MapConfig } from "./map_config";
 import { FtpConnection } from "./storage";
+import { Socket } from "socket.io";
 
 const defaultMapName = 'pml30map';
 
@@ -14,13 +15,39 @@ export function LogMsg( msgName, input, output ) {
   console.log(output);
 }
 
+// Minimap edit request
+
+export enum MinimapEditReqType {
+  addFloor = 'addFloor',
+  delFloor = 'delFloor',
+  setImgPos = 'setImgPos',
+  setModelPos = 'setModelPos',
+  setFloorImgPos = 'setFloorImgPos',
+}
+export enum MinimapPosType {
+  Start = 'Start',
+  End = 'End',
+}
+
+export interface MinimapSetPosData {
+  floor?: number,
+  posType: MinimapPosType,
+  pos: Vec2,
+}
+
+export interface MinimapEditReq {
+  type: MinimapEditReqType,
+  data: number | MinimapSetPosData
+}
+
 export class Client {
   accessLevel: number;
   socket;
   db;
   dbName: string;
   mongodb: MongoDB;
-  
+  curMapConfig: MapConfig = undefined;
+
   setupNodeRequests() {
 
     // Nodes
@@ -120,7 +147,7 @@ export class Client {
     });
   } /* End of 'setupNodeRequests' function */
 
-  constructor( ftpStorage: FtpConnection, mapsConfig: MapConfig[], newMongo: MongoDB, socket, newAccessLevel: number ) {
+  constructor( ftpStorage: FtpConnection, mapsConfig: MapConfig[], saveConfig: ()=>void, newMongo: MongoDB, socket, newAccessLevel: number ) {
 
     this.mongodb = newMongo;
     console.log(`Client connected with id: ${socket.id}`);
@@ -133,6 +160,82 @@ export class Client {
     console.log("Active map - " + this.dbName);
     this.db = this.mongodb.dbs[this.dbName];
 
+    console.log(this.dbName);
+    for (let i = 0; i < mapsConfig.length; i++)
+      if (mapsConfig[i].name == this.dbName)
+      {
+        this.curMapConfig = mapsConfig[i];
+        break;
+      }
+    
+    // Minimap
+    socket.on("editMinimap", ( req: MinimapEditReq, res )=>{
+      var result: boolean = false;
+      var floorIndex: number = 0;
+
+      switch (req.type) {
+        case MinimapEditReqType.addFloor:
+          floorIndex = req.data as number;
+          
+          result = true;
+          for (let i = 0; i < this.curMapConfig.minimapInfo.floors.length; i++)
+            if (this.curMapConfig.minimapInfo.floors[i].floorIndex == floorIndex) {
+              result = false;
+              break;
+            }
+          if (!result)
+            break;
+
+          this.curMapConfig.minimapInfo.floors.push({
+            floorIndex: floorIndex,
+            fileName: `imgs/minimap/f${floorIndex}.png`,
+          });
+          this.curMapConfig.minimapInfo.floorCount++;
+          if (floorIndex < this.curMapConfig.minimapInfo.firstFloor)
+            this.curMapConfig.minimapInfo.firstFloor = floorIndex;
+          result = true;
+          break;
+        case MinimapEditReqType.delFloor:
+          floorIndex = req.data as number;
+
+          console.log("Del floor");
+          console.log(this.curMapConfig.minimapInfo.floors);
+          for (let i = 0; i < this.curMapConfig.minimapInfo.floors.length; i++)
+            if (this.curMapConfig.minimapInfo.floors[i].floorIndex == floorIndex) {
+              result = true;
+              this.curMapConfig.minimapInfo.floors.splice(i, 1);
+              this.curMapConfig.minimapInfo.floorCount--;
+              if (this.curMapConfig.minimapInfo.floorCount == 0) {
+                this.curMapConfig.minimapInfo.firstFloor = 0;
+                break;
+              }
+
+              if (this.curMapConfig.minimapInfo.firstFloor == floorIndex) {
+                var lowestFloor = this.curMapConfig.minimapInfo.floors[0].floorIndex;
+                this.curMapConfig.minimapInfo.floors.map((e)=>{
+                  if (e.floorIndex < lowestFloor)
+                    lowestFloor = e.floorIndex;
+                });
+                this.curMapConfig.minimapInfo.firstFloor = lowestFloor;
+              }
+              break;
+            }
+          break;
+        case MinimapEditReqType.setFloorImgPos:
+          break;
+        case MinimapEditReqType.setImgPos:
+          break;
+        case MinimapEditReqType.setModelPos:
+          break;
+      }
+
+      if (result)
+        saveConfig();
+
+      LogMsg("editMinimap", req, result);
+      res(result);
+    });
+    
     // Base requests
     
     socket.on("ping", ( value, res )=>{
@@ -156,17 +259,8 @@ export class Client {
 
     // Minimap requests
     socket.on("getMapConfigReq", ( res )=>{
-
-      console.log(this.dbName);
-      for (let i = 0; i < mapsConfig.length; i++)
-        if (mapsConfig[i].name == this.dbName)
-        {
-          LogMsg("getMapConfigReq", "", mapsConfig[i]);
-          res(mapsConfig[i]);
-          return;
-        }
-      LogMsg("getMapConfigReq", "", {});
-      res({});
+      LogMsg("getMapConfigReq", "", this.curMapConfig);
+      res(this.curMapConfig);
     });
 
     // Global DB requests

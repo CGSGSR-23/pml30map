@@ -79,7 +79,7 @@ const mapsConfig: MapConfig[] = [
   }
   
 ];
-//console.log(JSON.stringify(mapsConfig));
+
 
 const enableKeys: number = 2;
                       // 0 - no check
@@ -134,20 +134,29 @@ async function ioInit() {
   const server = http.createServer(app);
   const io = new Server(server);
   const DB = new MongoDB;
+  const configFileName = 'config.json';
   const ftpStorage = new FtpConnection("ftpupload.net", "if0_35095022", "e9cdJZmBzH");
 
   await DB.init("mongodb+srv://doadmin:i04J9b2t1X853Cuy@db-mongodb-pml30-75e49c39.mongo.ondigitalocean.com/admin?tls=true&authSource=admin", mapsConfig.map((e)=>{ return e.dbName; }));
   //await ftpStorage.connect();
   ftpStorage.setRootPath("pml30map.rf.gd/htdocs/storage/");
-  const config = await ftpStorage.downloadFile("config.json");
+  const config = JSON.parse((await ftpStorage.downloadFile(configFileName)).toString());
+
+  const saveConfig = async ()=>{
+    const cStr = JSON.stringify(config);
+    console.log("SAVE CONFIG:");
+    console.log(cStr);
+
+    await ftpStorage.uploadFile(Buffer.from(cStr), "", configFileName);
+  };
   
   // For test
   io.on("connection", async (socket) => {
     console.log('New connection');
     
-    //console.log(JSON.parse(config.toString()));
-    //console.log(JSON.stringify(mapsConfig));
-    new Client(ftpStorage, mapsConfig, DB, socket, getAccessLevel(socket.request));
+    // console.log(JSON.parse(config.toString()));
+    // console.log(JSON.stringify(mapsConfig));
+    new Client(ftpStorage, config, saveConfig, DB, socket, getAccessLevel(socket.request));
   });
   
   // image storage
@@ -158,10 +167,14 @@ async function ioInit() {
     const imgName = req.files.file.name;
     const imgPath = req.query.path;
 
-    //console.log(img);
+    // console.log(img);
     const result = await ftpStorage.uploadFile(imgData, imgPath, imgName);
     console.log('upload ended');
     res.send(result);
+  });
+
+  app.post("/saveConfig", async ()=>{
+    saveConfig();
   });
 
   app.get("/download", async ( req, res )=>{

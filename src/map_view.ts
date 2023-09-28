@@ -23,9 +23,9 @@ export class MapView {
   constructor() {
     this.socket = new Connection();
   }
-  
+
   async init() {
-    this.mapConfig = await this.getMapConfig();
+    await this.updateConfig();
   }
 
   async loadImg( fileName: string ) {
@@ -48,6 +48,10 @@ export class MapView {
   async loadRes( fileName: string ) {
     console.log(this.mapConfig.storageURL + fileName);
     return fetchAbsolute(this.mapConfig.storageURL + fileName);
+  }
+
+  async updateConfig(): Promise<void> {
+    this.mapConfig = await this.getMapConfig();
   }
 
   async getMapConfig(): Promise<MapConfig> {

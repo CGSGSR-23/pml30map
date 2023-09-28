@@ -1,22 +1,7 @@
 @import 'colors.css';
 
-input[type=button] {
-  --button-bg-color: var(--sub-color);
-  --button-text-color: var(--text-color);
-
-  --button-hover-color: var(--l-sub-color);
-  --button-hover-text-color: var(--text-color);
-
-  --button-active-color: var(--highlight-sub-color);
-  --button-active-text-color: var(--sub-color);
-
-  --button-focus-color: var(--focus-sub-color);
-  --button-focus-text-color: var(--text-color);
+input[type=button], .typeButton {
   
-  --button-focus-hover-color: var(--l-focus-sub-color);
-  --button-focus-hover-text-color: var(--text-color);
-  
-
   background-color:  var(--button-bg-color);
   border: none;
   margin: 0.2em;

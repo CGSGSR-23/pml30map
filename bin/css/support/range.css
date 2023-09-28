@@ -1,10 +1,7 @@
 @import 'colors.css';
 
-input[type="range"] {
-  --range-bg-color: var(--sub-color);
-  --thumb-hover-color: var(--focus-sub-color);
-  --thumb-active-color: var(--highlight-sub-color);
-
+input[type="range"], typeRange {
+  
   -webkit-appearance: none;
   appearance: none;
   background: transparent;

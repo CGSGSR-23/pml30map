@@ -2,11 +2,13 @@ import React, { createRef } from "react";
 import { MapConfig } from "../../server/map_config";
 import { FloorInfo } from "../../server/map_config";
 import { Vec2 } from "../system/linmath";
-import { loadImg } from "./support";
 import { uploadFile } from "./upload";
-import { MapView } from "../map_view";
+import { MapEdit } from "../map_edit";
+import { InputFile } from "./support";
+
+import { MinimapEditReqType } from "../../server/client";
 export interface MinimapEditorProps {
-  socket: MapView;
+  socket: MapEdit;
   closeCallBack: ()=>void;
 }
 
@@ -15,7 +17,11 @@ export interface MinimapEditorState {
   imgFileRef: React.MutableRefObject<any>;
   imgListJSX: JSX.Element;
   editFloor: FloorInfo;
-  mapInfo: MapConfig;
+  mapConfig: MapConfig;
+  inputRef: React.MutableRefObject<any>;
+  showAddFloorWindow: boolean;
+  showLoadButton: boolean;
+  errorText: string;
 }
 
 export class MinimapEditor extends React.Component<MinimapEditorProps, MinimapEditorState> {
@@ -28,9 +34,13 @@ export class MinimapEditor extends React.Component<MinimapEditorProps, MinimapEd
     this.state = {
       canvasRef: createRef(),
       imgFileRef: createRef(),
+      inputRef: createRef(),
       imgListJSX: (<></>),
       editFloor: undefined,
-      mapInfo: undefined,
+      mapConfig: this.props.socket.mapConfig,
+      showAddFloorWindow: false,
+      showLoadButton: false,
+      errorText: "",
     };
   } 
   
@@ -53,6 +63,7 @@ export class MinimapEditor extends React.Component<MinimapEditorProps, MinimapEd
     this.curImg = await this.props.socket.loadImg(this.state.editFloor.fileName + "?" + Math.random()) as HTMLImageElement;
     console.log(this.curImg);
     this.updateCanvas();
+    this.setState({});
   }
 
   render() {
@@ -88,38 +99,86 @@ export class MinimapEditor extends React.Component<MinimapEditorProps, MinimapEd
                   this.updateCanvas();
                 }
               }}/>
+              {this.state.editFloor != undefined && <>
+                {/*<input ref={this.state.imgFileRef} type="file" accept="image/*"/>*/}
+                <InputFile ref={this.state.imgFileRef} value="Chose image file" onLoadCallBack={async ()=>{
+                  if (this.state.imgFileRef.current.getFiles().length > 0 && this.state.mapConfig != undefined)
+                  {
+                    const imgPath = "imgs/minimap/", imgName = `f${this.state.editFloor.floorIndex}.png`;
+
+                    await uploadFile(this.state.imgFileRef.current.getFiles()[0], `maps/${this.state.mapConfig.name}/${imgPath}`, imgName);
+                    await this.reloadImg();
+                  }
+                  console.log("Sent");
+                }}/>
+                <input type="button" value="Delete floor" onClick={async ()=>{
+                  await this.props.socket.editMinimap({type: MinimapEditReqType.delFloor, data: this.state.editFloor.floorIndex});
+                  this.setState({ mapConfig: this.props.socket.mapConfig });  
+                }}/>
+
+                {/*
+                <input type="button" value="Save config" onClick={async ()=>{
+                  await fetch(`saveConfig`, {
+                    method: 'post',
+                  });
+                }}/>
+                */}
+              </>}
             </div>
-            {this.state.mapInfo != undefined && <div>
-              {this.state.mapInfo.minimapInfo.floors.map((e)=>{
+            {this.state.mapConfig != undefined && <div>
+              {this.state.mapConfig.minimapInfo.floors.map((e)=>{
                 return (<><input type="button" className={this.state.editFloor != undefined ? this.state.editFloor.floorIndex == e.floorIndex ? "active" : "" : ""} value={`Floor ${e.floorIndex}`} onClick={()=>{
                   this.setState({ editFloor: e }, ()=>{
+                    this.state.imgFileRef.current.reset();
                     this.updateEdit();
                   });
                 }}/><br/></>);
               })}
             </div>}
           </div>
-          {this.state.editFloor != undefined && <>
-            <input ref={this.state.imgFileRef} type="file"/>
-            <input type="button" value="Load another" onClick={async ()=>{
-              if (this.state.imgFileRef.current.files.length > 0 && this.state.mapInfo != undefined)
-              {
-                const imgPath = "imgs/minimap/", imgName = `f${this.state.editFloor.floorIndex}.png`;
-
-                await uploadFile(this.state.imgFileRef.current.files[0], `maps/${this.state.mapInfo.name}/${imgPath}`, imgName);
-                await this.reloadImg();
-              }
-              console.log("Sent");
-            }}/>
-          </>}
+          <input type="button" value="Add floor" onClick={async ()=>{
+            //await this.props.socket.editMinimap({type: MinimapEditReqType.addFloor, data: 10});
+            this.setState({ showAddFloorWindow: true });
+          }}/>
         </div>
+        {this.state.showAddFloorWindow &&
+          <div style={{
+            zIndex: 5,
+            position: 'absolute',
+            backgroundColor: 'var(--shadow2-color)',  
+            
+            right: 0,
+            top: 0,
+            left: 0,
+            bottom: 0,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
+            <div className="box">
+              <div className="flexRow">
+                Floor index: <input ref={this.state.inputRef} type="number"/><input type="button" value="Add" onClick={async ()=>{
+                  const res = await this.props.socket.editMinimap({type: MinimapEditReqType.addFloor, data: parseInt(this.state.inputRef.current.value)});
+                  await this.props.socket.updateConfig();
+
+                  if (!res)
+                    this.setState({ errorText: "Such floor already exist" });
+                  else
+                    this.setState({ errorText: "", showAddFloorWindow: false, mapConfig: this.props.socket.mapConfig });  
+                }}/>  
+              </div>
+              {this.state.errorText != "" && <p>{this.state.errorText}</p>}
+            </div>
+          </div>
+        }
       </div>
     );
   }
 
   async componentDidMount() {
-    const mapInfo: MapConfig = (await this.props.socket.socket.send("getMapConfigReq")) as MapConfig;
+    //const mapInfo: MapConfig = (await this.props.socket.socket.send("getMapConfigReq")) as MapConfig;
 
-    this.setState({ mapInfo: mapInfo });
+
+    //this.setState({ mapInfo: this.prosp });
   }
 }
