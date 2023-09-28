@@ -12,38 +12,6 @@ import * as LinMath from '../system/linmath';
 import { MapEdit } from "../map_edit";
 import { MapConfig } from "../../server/map_config";
 
-/**
- * Editor unit
- */
-class EditorUnit implements Unit {
-  unitType: string = "EditorUnit";
-  skysphere: Skysphere;
-  baseConstruction: BaseConstruction;
-  doSuicide: boolean;
-
-  /**
-   * Unit create function
-   * @param system System
-   * @returns Promise of new EditorUnit unit
-   */
-  static async create(system: System): Promise<EditorUnit> {
-    let unit = new EditorUnit();
-
-    unit.skysphere = await system.createUnit(Skysphere.create, "bin/imgs/default.png") as Skysphere;
-    unit.baseConstruction = await system.createUnit(BaseConstruction.create, "bin/models/pml30map.obj") as BaseConstruction;
-    system.createUnit(CameraController.Arcball.create);
-    return unit;
-  } /* create */
-
-  /**
-   * Response function
-   * @param system System reference
-   */
-  response(system: System): void {
-    // Global response
-  } /* response */
-} /* class EditorUnit */
-
 class Node implements Unit {
   unitType: string = "Node";
   doSuicide: boolean;
@@ -193,10 +161,18 @@ interface QueryData {
 /**
  * Editor class
  */
-export class Editor extends React.Component<EditorProps, EditorState> {
+export class Editor extends React.Component<EditorProps, EditorState> implements Unit {
   system: System = null;
-  editor: EditorUnit;
   curQuery: QueryData = {};
+
+  unitType: string = "EditorUnit";
+  skysphere: Skysphere;
+  baseConstruction: BaseConstruction;
+  doSuicide: boolean;
+
+  response(system: System): void {
+    
+  } /* response */
 
   asyncSetState( newState: any ) {
     return new Promise<void>((resolve) => {
@@ -299,14 +275,20 @@ export class Editor extends React.Component<EditorProps, EditorState> {
     // system initialization
     this.system = await System.create(this.state.canvasRef.current);
     this.system.resize(this.state.canvasRef.current.clientWidth, this.state.canvasRef.current.clientHeight);
-    this.editor = await this.system.createUnit(EditorUnit.create) as EditorUnit;
+
+    this.skysphere = await this.system.createUnit(Skysphere.create, "bin/imgs/default.png") as Skysphere;
+    this.baseConstruction = await this.system.createUnit(BaseConstruction.create, "bin/models/pml30map.obj") as BaseConstruction;
+    this.system.createUnit(CameraController.Arcball.create);
+
+    this.system.addUnit(this);
+
     this.system.runMainLoop();
 
     // Get context
     const allMaps = (await this.props.socket.socket.send('getAllMapsReq')) as string[];
     const query = this.getQuery();
 
-    this.editor.baseConstruction.topFloor = this.props.socket.mapConfig.minimapInfo.firstFloor + this.props.socket.mapConfig.minimapInfo.floorCount - 1;
+    this.baseConstruction.topFloor = this.props.socket.mapConfig.minimapInfo.firstFloor + this.props.socket.mapConfig.minimapInfo.floorCount - 1;
     
     this.asyncSetState({
       menuJSX: (<>
@@ -340,9 +322,9 @@ export class Editor extends React.Component<EditorProps, EditorState> {
           <div className="flexRow">
             <input ref={this.state.floorRef} type="range" min={this.props.socket.mapConfig.minimapInfo.firstFloor} max={this.props.socket.mapConfig.minimapInfo.firstFloor + this.props.socket.mapConfig.minimapInfo.floorCount} onChange={(e)=>{
               this.state.floorNumberRef.current.innerText = e.target.value;
-              this.editor.baseConstruction.topFloor = parseInt(e.target.value);
+              this.baseConstruction.topFloor = parseInt(e.target.value);
             }} style={{ width: this.props.socket.mapConfig.minimapInfo.floorCount * 2 + 'em' }}/>
-            <div ref={this.state.floorNumberRef} style={{width: '1em'}}>{this.editor.baseConstruction.topFloor}</div>
+            <div ref={this.state.floorNumberRef} style={{width: '1em'}}>{this.baseConstruction.topFloor}</div>
           </div>
         </div>}
         <input type="button" value="Minimap settings" onClick={()=>{

@@ -1,5 +1,5 @@
 import {System, Unit} from '../system/system';
-import {Vec3} from '../system/linmath';
+import {Vec3, Size} from '../system/linmath';
 
 export class Arcball implements Unit {
   unitType: string = "ArcballCameraController";
@@ -17,7 +17,7 @@ export class Arcball implements Unit {
         let spherical = system.camera.loc.sub(system.camera.at).toSpherical();
 
         spherical.elevation = spherical.elevation + mdx;
-        spherical.azimuth = Math.min(Math.max(spherical.azimuth - mdy, 0.01), Math.PI);
+        spherical.azimuth = Math.min(Math.max(spherical.azimuth - mdy, 0.01), Math.PI - 0.01);
 
         system.camera.set(system.camera.at.add(spherical.toVec3()), system.camera.at);
       }
@@ -58,3 +58,56 @@ export class Arcball implements Unit {
 
   } /* create */
 } /* FlyCamera */
+
+/**
+ * Fixed arcball camera
+ */
+export class FixedArcball implements Unit {
+  unitType: string = "FixedArcballCameraController";
+  doSuicide: boolean;
+  system: System;
+  minProjSize = 0.1;
+  maxProjSize = 2.0;
+
+  static create(system: System): FixedArcball {
+    let camera = new FixedArcball();
+
+    camera.system = system;
+    system.canvas.addEventListener('mousemove', (event: MouseEvent) => {
+      if (event.altKey || event.shiftKey)
+        return;
+
+      let
+        mdx = event.movementX / 200.0,
+        mdy = event.movementY / 200.0;
+
+      if ((event.buttons & 1) == 1) {
+        let spherical = system.camera.dir.toSpherical();
+
+        spherical.radius = 1.0;
+        spherical.elevation = spherical.elevation - mdx;
+        spherical.azimuth = Math.min(Math.max(spherical.azimuth - mdy, 0.01), Math.PI - 0.01);
+
+        system.camera.set(system.camera.loc, system.camera.loc.add(spherical.toVec3()));
+      }
+    });
+
+    system.canvas.addEventListener('wheel', (event: WheelEvent) => {
+      let mdw = event.deltaY / 100.0;
+
+      let d = (system.camera.projSize.w - camera.minProjSize) / (camera.maxProjSize - camera.minProjSize);
+
+      d += mdw / 10.0;
+      d = Math.min(0.99, Math.max(0.01, d));
+      d = d * (camera.maxProjSize - camera.minProjSize) + camera.minProjSize;
+
+      system.camera.projSet(system.camera.near, system.camera.far, new Size(d, d));
+    });
+
+    return camera;
+  } /* create */
+
+  response(system: System): void {
+    this.system = system;
+  } /* response */
+} /* FixedArcball */

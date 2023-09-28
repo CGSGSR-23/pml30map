@@ -22,13 +22,14 @@ export class Skysphere implements Unit {
   /**
    * Skysphere create function
    * @param system System this skysphere will belong to
-   * @param imageURL URL of initial image this sphere is setted to
+   * @param image URL of initial image this sphere is setted to
    */
-  static async create(system: System, imageURL: string): Promise<Skysphere> {
+  static async create(system: System, image: string): Promise<Skysphere> {
     let result = new Skysphere();
 
     result.material = await system.createMaterial("bin/shaders/skysphere");
-    result.skyTexture = await system.createTextureFromURL(imageURL);
+
+    result.skyTexture = await system.createTextureFromURL(image);
     result.material.addResource(result.skyTexture);
     result.model = system.createModelFromTopology(Topology.tetrahedron(), result.material);
 
