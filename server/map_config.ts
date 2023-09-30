@@ -2,7 +2,9 @@ import { Vec2 } from "../src/system/linmath";
 
 export interface FloorInfo {
   floorIndex: number,
-  fileName: string
+  fileName: string,
+  startPos?: Vec2,
+  endPos?: Vec2,
 }
 
 export interface MinimapInfo {

@@ -142,6 +142,9 @@ async function ioInit() {
   ftpStorage.setRootPath("pml30map.rf.gd/htdocs/storage/");
   const config = JSON.parse((await ftpStorage.downloadFile(configFileName)).toString());
 
+  console.log('---------------');
+  console.log(JSON.stringify(config));
+  console.log('---------------');
   const saveConfig = async ()=>{
     const cStr = JSON.stringify(config);
     console.log("SAVE CONFIG:");

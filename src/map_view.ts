@@ -28,7 +28,7 @@ export class MapView {
     await this.updateConfig();
   }
 
-  async loadImg( fileName: string ) {
+  async loadImg( fileName: string ): Promise<HTMLImageElement> {
     console.log("1");
     
     var img = new Image();

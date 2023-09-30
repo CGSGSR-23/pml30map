@@ -26,6 +26,8 @@ export class Minimap extends React.Component<MinimapProps, MinimapState> {
   mouseY: number = 0;
   avatarPos: Vec2 = new Vec2(0, 0);
   avatarFloor: number;
+  imgStartPos: Vec2;
+  imgEndPos: Vec2;
   scaleCoef: number;
 
   constructor( props: MinimapProps ) {
@@ -41,17 +43,31 @@ export class Minimap extends React.Component<MinimapProps, MinimapState> {
     props.socket.mapConfig.minimapInfo.modelStartPos = new Vec2(props.socket.mapConfig.minimapInfo.modelStartPos.x, props.socket.mapConfig.minimapInfo.modelStartPos.y);
     props.socket.mapConfig.minimapInfo.modelEndPos = new Vec2(props.socket.mapConfig.minimapInfo.modelEndPos.x, props.socket.mapConfig.minimapInfo.modelEndPos.y);
 
-    this.scaleCoef = props.socket.mapConfig.minimapInfo.imgEndPos.sub(props.socket.mapConfig.minimapInfo.imgStartPos).length() /
-                     props.socket.mapConfig.minimapInfo.modelEndPos.sub(props.socket.mapConfig.minimapInfo.modelStartPos).length();
-    console.log("Coef");
-    console.log(props.socket.mapConfig.minimapInfo.modelEndPos.sub(props.socket.mapConfig.minimapInfo.modelStartPos).length());
-    console.log(this.scaleCoef);
-
+    this.updateImgPos();
+    
     //for (let i = 0; i < props.mapInfo.floorCount; i++)
     //  this.floorImgs[props.mapInfo.floors[i].floorIndex] = loadImg(props.mapInfo.floors[i].fileName);
     props.socket.mapConfig.minimapInfo.floors.map(async (f)=>{
       this.floorImgs[f.floorIndex] = this.props.socket.loadImg(f.fileName);
     });
+  }
+
+  updateImgPos() {
+    console.log(this.state.curFloorInd);
+    console.log(this.props.socket.mapConfig.minimapInfo.imgStartPos);
+    if (this.state.curFloorInd != undefined) {
+      for (let f in this.props.socket.mapConfig.minimapInfo.floors)
+        if (this.props.socket.mapConfig.minimapInfo.floors[f].floorIndex == this.state.curFloorInd)
+        {
+          this.imgStartPos = this.props.socket.mapConfig.minimapInfo.floors[f].startPos != undefined ? this.props.socket.mapConfig.minimapInfo.floors[f].startPos : this.props.socket.mapConfig.minimapInfo.imgStartPos;
+          this.imgEndPos   = this.props.socket.mapConfig.minimapInfo.floors[f].endPos   != undefined ? this.props.socket.mapConfig.minimapInfo.floors[f].endPos   : this.props.socket.mapConfig.minimapInfo.imgEndPos;
+          break;
+        }
+    }
+    this.imgStartPos = this.props.socket.mapConfig.minimapInfo.imgStartPos;
+    this.imgEndPos = this.props.socket.mapConfig.minimapInfo.imgEndPos;
+    this.scaleCoef = this.imgEndPos.sub(this.imgStartPos).length() /
+                     this.props.socket.mapConfig.minimapInfo.modelEndPos.sub(this.props.socket.mapConfig.minimapInfo.modelStartPos).length();
   }
 
   drawAvatar( ctx: CanvasRenderingContext2D,  coords: Vec2 ): void {
@@ -90,6 +106,7 @@ export class Minimap extends React.Component<MinimapProps, MinimapState> {
   switchToFloor( floorInd: number ): void {
     this.setState({ curFloorInd: floorInd }, ()=>{
       this.updateCanvas();
+      this.updateImgPos();
     });
   }
 
@@ -100,7 +117,7 @@ export class Minimap extends React.Component<MinimapProps, MinimapState> {
   }
 
   toWorld( pos: Vec2, floorIndex: number ): Vec3 {
-    let hPos = (new Vec2(pos.x, pos.y)).sub(this.props.socket.mapConfig.minimapInfo.imgStartPos).mul(1 / this.scaleCoef).add(this.props.socket.mapConfig.minimapInfo.modelStartPos);
+    let hPos = (new Vec2(pos.x, pos.y)).sub(this.imgStartPos).mul(1 / this.scaleCoef).add(this.props.socket.mapConfig.minimapInfo.modelStartPos);
 
     return new Vec3(hPos.x, floorIndex, hPos.y);
   }
@@ -108,7 +125,7 @@ export class Minimap extends React.Component<MinimapProps, MinimapState> {
   toMap( pos: Vec3 ): Vec2 {
     let hPos = new Vec2(pos.x, pos.z);
 
-    return hPos.sub(this.props.socket.mapConfig.minimapInfo.modelStartPos).mul(this.scaleCoef).add(this.props.socket.mapConfig.minimapInfo.imgStartPos)
+    return hPos.sub(this.props.socket.mapConfig.minimapInfo.modelStartPos).mul(this.scaleCoef).add(this.imgStartPos);
   }
 
   render() {

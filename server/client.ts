@@ -1,5 +1,5 @@
 import { MongoDB } from "./mongodb";
-import { MinimapInfo } from "./map_config";
+import { FloorInfo, MinimapInfo } from "./map_config";
 import { Vec2, Vec3 } from "../src/system/linmath";
 import { MapConfig } from "./map_config";
 import { FtpConnection } from "./storage";
@@ -148,7 +148,7 @@ export class Client {
   } /* End of 'setupNodeRequests' function */
 
   constructor( ftpStorage: FtpConnection, mapsConfig: MapConfig[], saveConfig: ()=>void, newMongo: MongoDB, socket, newAccessLevel: number ) {
-
+  
     this.mongodb = newMongo;
     console.log(`Client connected with id: ${socket.id}`);
 
@@ -172,6 +172,7 @@ export class Client {
     socket.on("editMinimap", ( req: MinimapEditReq, res )=>{
       var result: boolean = false;
       var floorIndex: number = 0;
+      var setPosData: MinimapSetPosData = undefined;
 
       switch (req.type) {
         case MinimapEditReqType.addFloor:
@@ -222,10 +223,48 @@ export class Client {
             }
           break;
         case MinimapEditReqType.setFloorImgPos:
+          setPosData = req.data as MinimapSetPosData;
+
+          for (let f in this.curMapConfig.minimapInfo.floors)
+            if (this.curMapConfig.minimapInfo.floors[f].floorIndex == setPosData.floor)
+            {
+              result = true;
+              switch (setPosData.posType) {
+                case MinimapPosType.Start:
+                  this.curMapConfig.minimapInfo.floors[f].startPos = setPosData.pos;
+                  break;
+                case MinimapPosType.End:
+                  this.curMapConfig.minimapInfo.floors[f].endPos = setPosData.pos;
+                  break;
+              }
+              break;
+            }
           break;
         case MinimapEditReqType.setImgPos:
+          setPosData = req.data as MinimapSetPosData;
+
+          result = true;
+          switch (setPosData.posType) {
+            case MinimapPosType.Start:
+              this.curMapConfig.minimapInfo.imgStartPos = setPosData.pos;
+              break;
+            case MinimapPosType.End:
+              this.curMapConfig.minimapInfo.imgEndPos = setPosData.pos;
+              break;
+          }
           break;
         case MinimapEditReqType.setModelPos:
+          setPosData = req.data as MinimapSetPosData;
+
+          result = true;
+          switch (setPosData.posType) {
+            case MinimapPosType.Start:
+              this.curMapConfig.minimapInfo.modelStartPos = setPosData.pos;
+              break;
+            case MinimapPosType.End:
+              this.curMapConfig.minimapInfo.modelEndPos   = setPosData.pos;
+              break;
+          }
           break;
       }
 

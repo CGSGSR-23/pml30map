@@ -96,7 +96,7 @@ export class Viewer extends React.Component<ViewerProps, ViewerState> {
           zIndex: 2,
           position: 'absolute',          
         }}>
-          <h2>Minimap window</h2>
+          <h2>Minimap</h2>
           {this.state.minimapJSX}
           {this.props.accessLevel >= 2 && <>
             <input type="button" value="Go to editor" onClick={()=>{
