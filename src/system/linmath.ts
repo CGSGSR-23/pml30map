@@ -593,6 +593,15 @@ export class Mat4 {
     );
   } /* scale */
 
+  static scaleNum(x: number, y: number, z: number): Mat4 {
+    return new Mat4(
+      x, 0, 0, 0,
+      0, y, 0, 0,
+      0, 0, z, 0,
+      0, 0, 0, 1
+    );
+  } /* scaleNum */
+
   static translate(t: Vec3): Mat4 {
     return new Mat4(
       1,   0,   0,   0,

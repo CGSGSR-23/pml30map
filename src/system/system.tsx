@@ -261,6 +261,19 @@ export class System {
     return new Vec3(coord.x, coord.y, coord.z);
   } /* getScreenPosition */
 
+  responseUnits() {
+    for (let i = 0, num = this.units.length; i < num; i++) {
+      this.currentUnitID = i;
+      this.units[i].response(this);
+    }
+
+    let newUnits: Unit[] = [];
+    for (let unit of this.units)
+      if (!unit.doSuicide)
+        newUnits.push(unit);
+    this.units = newUnits;
+  } /* responseUnits */
+
   /**
    * Main loop running function
    */
@@ -270,24 +283,11 @@ export class System {
 
     this.mainLoopTimeout = setInterval(() => {
       this.timer.response();
-      for (let i = 0, num = this.units.length; i < num; i++) {
-        this.currentUnitID = i;
-        this.units[i].response(this);
-      }
 
-      let newUnits: Unit[] = [];
-      for (let unit of this.units)
-        if (!unit.doSuicide)
-          newUnits.push(unit);
-      this.units = newUnits;
+      this.responseUnits();
 
       this.target.bind();
 
-      // let angle = this.timer.time * Math.PI;
-      // let loc = (new Vec3(Math.cos(angle), 1, Math.sin(angle))).mulNum(3);
-      // this.camera.set(loc, new Vec3(0, 0, 0));
-
-      // Write main data
       this.cameraUniformbuffer.writeSubData(new Float32Array([
         ...this.camera.viewProj.m,
         this.camera.loc.x, this.camera.loc.y, this.camera.loc.z,

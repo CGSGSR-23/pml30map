@@ -46,10 +46,14 @@ class NeighbourArrow implements Unit {
     arrow.data = data;
 
     let direction = (new Vec2(data.position.x - manager.origin.x, data.position.y - manager.origin.y)).angle();
+
     arrow.transform = Mat4.identity()
+      .mul(Mat4.rotateY(Math.PI / 2))
       .mul(Mat4.rotateZ(Math.PI / 2))
-      .mul(Mat4.translate(new Vec3(0, -1, 1)))
-      .mul(Mat4.rotateY(direction));
+      .mul(Mat4.scaleNum(0.5, 0.5, 0.5))
+      .mul(Mat4.translate(new Vec3(1.5, -0.5, 0)))
+      .mul(Mat4.rotateY(direction))
+      ;
 
     return arrow;
   } /* create */
@@ -83,16 +87,16 @@ class NeighbourArrowManager {
     let arrow = NeighbourArrow.create(this, data);
 
     this.system.addUnit(arrow);
+    this.neighbours.push(arrow);
     return arrow;
   } /* addNeighbour */
 
   clearNeighbours() {
     for (let neighbour of this.neighbours)
-      neighbour.doSuicide = true;
+    neighbour.doSuicide = true;
     this.neighbours = [];
   } /* clearNeighbours */
-};
-
+}; /* NeighbourArrowManager */
 
 export class Viewer extends React.Component<ViewerProps, ViewerState> implements Unit {
   curQuery: QueryData = {};
@@ -135,7 +139,13 @@ export class Viewer extends React.Component<ViewerProps, ViewerState> implements
     this.curQuery = this.getQuery();
   } /* cosntructor */
 
-  async goToNode(minimap: Minimap, uri: URI) {
+  /* Node transition flag */
+  nodeTransitionStarted: boolean = false;
+
+  async goToNode(minimap: Minimap, uri: URI): Promise<boolean> {
+    if (this.nodeTransitionStarted)
+      return false;
+    this.nodeTransitionStarted = true;
     // Canvas part
 
     // Minimap part
@@ -147,16 +157,22 @@ export class Viewer extends React.Component<ViewerProps, ViewerState> implements
     console.log('Go to ' + uri.toStr());
     minimap.setAvatar(pos, node.floor);
 
+    let image = await this.props.socket.loadImg("imgs/panorama/" + node.skysphere.path);
+    this.sky.setImage(image);
     // Get new neighbours
+
     let neighbourNodes = await this.props.socket.getNeighbours(uri);
-    console.log(`length ${neighbourNodes.length}`);
     this.neighbourManager.clearNeighbours();
+    this.neighbourManager.origin = Vec3.fromObject(node.position);
     for (let neighbour of neighbourNodes) {
       this.neighbourManager.addNeighbour(await this.props.socket.getNode(neighbour));
     }
 
     this.curQuery.node_uri = uri.toStr();
     this.updateQuery();
+
+    this.nodeTransitionStarted = false;
+    return true;
   } /* goToNode */
 
   resize() {
@@ -183,7 +199,7 @@ export class Viewer extends React.Component<ViewerProps, ViewerState> implements
           zIndex: 2,
           position: 'absolute',
         }}>
-          <h2>Minimap</h2>
+          <h2>Minimap window</h2>
           {this.state.minimapJSX}
           {this.props.accessLevel >= 2 && <>
             <input type="button" value="Go to editor" onClick={()=>{
@@ -213,6 +229,8 @@ export class Viewer extends React.Component<ViewerProps, ViewerState> implements
     this.system = await System.create(this.state.canvasRef.current);
     this.resize();
 
+    this.system.camera.set(new Vec3(0, 0, 0), new Vec3(1, 0, 0), new Vec3(0, 1, 0));
+
     this.camera = await this.system.createUnit(CameraController.FixedArcball.create) as CameraController.FixedArcball;
     this.sky = await this.system.createUnit(Skysphere.create, "bin/imgs/default.png") as Skysphere;
 
@@ -222,7 +240,6 @@ export class Viewer extends React.Component<ViewerProps, ViewerState> implements
 
     this.system.runMainLoop();
 
-    
     window.addEventListener("resize", () => {
       this.resize();
     });

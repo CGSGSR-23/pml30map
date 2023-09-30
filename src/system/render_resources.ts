@@ -242,7 +242,7 @@ export class Texture implements ShaderBindable {
         this.height = image.height;
 
         gl.bindTexture(gl.TEXTURE_2D, this.tex);
-        gl.texImage2D(gl.TEXTURE_2D, 0, this.format.internalFormat, this.format.format, this.componentType, image);
+        gl.texImage2D(gl.TEXTURE_2D, 0, this.format.internalFormat, this.format.format, this.format.componentType, image);
         resolve();
       };
       image.onabort = () => {
@@ -250,6 +250,15 @@ export class Texture implements ShaderBindable {
       };
     });
   } /* load */
+
+  setImage(image: HTMLImageElement) {
+    let gl = this.gl;
+
+    gl.bindTexture(gl.TEXTURE_2D, this.tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, this.format.internalFormat, this.format.format, this.format.componentType, image);
+    this.width = image.width;
+    this.height = image.height;
+  } /* setImage */
 
   /**
    * Texture resize function
