@@ -414,6 +414,10 @@ export class Vec2 {
   right() {
     return new Vec2(this.y, -this.x);
   } /* right */
+
+  angle(): number {
+    return Math.atan2(this.y, this.x);
+  } /* angle */
 } /* Vec2 */
 
 /**

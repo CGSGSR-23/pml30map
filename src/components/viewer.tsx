@@ -1,12 +1,16 @@
 import { Minimap } from "./minimap";
 import { MapConfig } from "../../server/map_config";
-import { Vec2, Vec3 } from "../system/linmath";
-import React, { createRef } from "react";
+import { Vec2, Vec3, Mat4 } from "../system/linmath";
+import React from "react";
 //import { Connection } from "../socket";
-import { URI } from "../socket";
+import { URI, NodeData } from "../socket";
 import { queryToStr, getQuery } from "./support";
 import { System, Unit } from "../system/system";
 import { MapView } from "../map_view";
+import { Skysphere } from "../units/skysphere";
+import * as CameraController from '../units/camera_controller';
+import { MongoInvalidArgumentError } from "mongodb";
+import { UniformBuffer, Model, Topology } from "../system/render_resources";
 
 interface ViewerProps {
   accessLevel: number;
@@ -26,57 +30,140 @@ interface QueryData {
   node_uri?: string;
 }
 
-export class Viewer extends React.Component<ViewerProps, ViewerState> {
+class NeighbourArrow implements Unit {
+  data: NodeData;
+  manager: NeighbourArrowManager;
+  uniformBuffer: UniformBuffer;
+  transform: Mat4;
+
+  doSuicide: boolean;
+  unitType: string = "NeighbourArrow";
+
+  static create(manager: NeighbourArrowManager, data: NodeData): NeighbourArrow {
+    let arrow = new NeighbourArrow();
+
+    arrow.manager = manager;
+    arrow.data = data;
+
+    let direction = (new Vec2(data.position.x - manager.origin.x, data.position.y - manager.origin.y)).angle();
+    arrow.transform = Mat4.identity()
+      .mul(Mat4.rotateZ(Math.PI / 2))
+      .mul(Mat4.translate(new Vec3(0, -1, 1)))
+      .mul(Mat4.rotateY(direction));
+
+    return arrow;
+  } /* create */
+
+  response(system: System): void {
+    system.drawModel(this.manager.model, this.transform);
+  } /* response */
+}; /* NeighbourArrow */
+
+class NeighbourArrowManager {
+  system: System;
+  model: Model;
+  origin: Vec3 = new Vec3(0, 0, 0);
+  neighbours: NeighbourArrow[] = [];
+
+  static async create(system: System): Promise<NeighbourArrowManager> {
+    let manager = new NeighbourArrowManager();
+
+    let mtl = await system.createMaterial("bin/shaders/arrow");
+    let img = await system.createTextureFromURL("bin/imgs/arrow.png");
+
+    mtl.addResource(img);
+    manager.model = system.createModelFromTopology(Topology.square(), mtl);
+    manager.system = system;
+
+    return manager;
+  } /* NeighbourArrowManager */
+
+  addNeighbour(data: NodeData): NeighbourArrow {
+    console.log("neighbour added: ", data);
+    let arrow = NeighbourArrow.create(this, data);
+
+    this.system.addUnit(arrow);
+    return arrow;
+  } /* addNeighbour */
+
+  clearNeighbours() {
+    for (let neighbour of this.neighbours)
+      neighbour.doSuicide = true;
+    this.neighbours = [];
+  } /* clearNeighbours */
+};
+
+
+export class Viewer extends React.Component<ViewerProps, ViewerState> implements Unit {
   curQuery: QueryData = {};
-  system: System = null;
-  
+
+  system: System;
+  doSuicide: boolean;
+  unitType: string = "Viewer";
+  camera: CameraController.FixedArcball;
+  neighbourManager: NeighbourArrowManager;
+  sky: Skysphere;
+
+  response(system: System): void {
+  } /* response */
+
   asyncSetState( newState: any ) {
     return new Promise<void>((resolve) => {
         this.setState(newState, ()=>{
           resolve();
         });
       });
-  }
+  } /* asyncSetState */
 
   getQuery(): QueryData {
     return getQuery() as QueryData;
-  }
+  } /* getQuery */
 
   updateQuery() {
     history.pushState(this.curQuery, "", '?' + queryToStr(this.curQuery));
-  }
+  } /* updateQuery */
 
   constructor( props: ViewerProps ) {
     super(props);
     this.state = {
-      canvasRef: createRef(),
-      minimapRef: createRef(),
+      canvasRef: React.createRef(),
+      minimapRef: React.createRef(),
       minimapJSX: (<></>),
       switchMenuJSX: (<></>),
     };
     console.log('Viewer construcor');
     this.curQuery = this.getQuery();
-  } /* End of 'cosntructor' function */
+  } /* cosntructor */
 
-  async goToNode( minimap: Minimap, uri: URI ) {
+  async goToNode(minimap: Minimap, uri: URI) {
     // Canvas part
 
     // Minimap part
+    console.log(uri.toStr());
     const node = await this.props.socket.getNode(uri);
+    console.log(node);
+    this.sky.skyTexturePath= "";
     const pos = minimap.toMap(node.position);
     console.log('Go to ' + uri.toStr());
     minimap.setAvatar(pos, node.floor);
 
+    // Get new neighbours
+    let neighbourNodes = await this.props.socket.getNeighbours(uri);
+    console.log(`length ${neighbourNodes.length}`);
+    this.neighbourManager.clearNeighbours();
+    for (let neighbour of neighbourNodes) {
+      this.neighbourManager.addNeighbour(await this.props.socket.getNode(neighbour));
+    }
+
     this.curQuery.node_uri = uri.toStr();
     this.updateQuery();
-  }
+  } /* goToNode */
 
   resize() {
     this.system.canvas.width = this.state.canvasRef.current.clientWidth;
     this.system.canvas.height = this.state.canvasRef.current.clientHeight;
 
-    this.system.defaultTarget.resize(this.system.canvas.width, this.system.canvas.height);
-    this.system.target.resize(this.system.canvas.width, this.system.canvas.height);
+    this.system.resize(this.system.canvas.width, this.system.canvas.height);
   } /* resize */
 
   render() {
@@ -94,7 +181,7 @@ export class Viewer extends React.Component<ViewerProps, ViewerState> {
         </div>
         <div className="box" style={{
           zIndex: 2,
-          position: 'absolute',          
+          position: 'absolute',
         }}>
           <h2>Minimap</h2>
           {this.state.minimapJSX}
@@ -119,21 +206,30 @@ export class Viewer extends React.Component<ViewerProps, ViewerState> {
     );
   } /* End of 'render' function */
 
-  async systemInit() {
+  /**
+   * System initializatoin function
+   */
+  async componentDidMount() {
     this.system = await System.create(this.state.canvasRef.current);
     this.resize();
 
-    // this.system.addUnit(new FrameCounter());
+    this.camera = await this.system.createUnit(CameraController.FixedArcball.create) as CameraController.FixedArcball;
+    this.sky = await this.system.createUnit(Skysphere.create, "bin/imgs/default.png") as Skysphere;
+
+    this.system.addUnit(this);
+
+    this.neighbourManager = await NeighbourArrowManager.create(this.system);
 
     this.system.runMainLoop();
-  }
 
-  async componentDidMount() {
-    this.systemInit();
-
+    
+    window.addEventListener("resize", () => {
+      this.resize();
+    });
+    
     const allMaps = (await this.props.socket.socket.send('getAllMapsReq')) as string[];
     const map: MapConfig = (await this.props.socket.socket.send("getMapConfigReq")) as MapConfig;
-    
+
     await this.asyncSetState({
       switchMenuJSX: (
         <>
@@ -165,10 +261,7 @@ export class Viewer extends React.Component<ViewerProps, ViewerState> {
 
     if (this.curQuery.node_uri != undefined)
       this.goToNode(this.state.minimapRef.current, new URI(this.curQuery.node_uri));
-
+    else
+      this.goToNode(this.state.minimapRef.current, await this.props.socket.getDefNodeURI());
   }
 } /* End of 'Viewer' class */
-
-window.onbeforeunload = ()=>{
-  console.log('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa');
-}

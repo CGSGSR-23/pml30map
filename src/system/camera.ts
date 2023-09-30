@@ -2,11 +2,11 @@ import {Vec3, Mat4, Size} from "./linmath";
 
 export class Camera {
   // camera projection shape params
-  projSize: Size = new Size(0.01, 0.01);
+  projSize: Size = new Size(1.0, 1.0);
   correctedProjSize: Size = new Size(0.01, 0.01);
   screenSize: Size;
   near: number = 0.01;
-  far: number = 8192;
+  far: number = 512.0;
 
   // current screen resolution
 
@@ -35,6 +35,9 @@ export class Camera {
     this.near = newNear;
     this.far = newFar;
     this.correctedProjSize = this.projSize.copy();
+
+    this.correctedProjSize.w *= this.near;
+    this.correctedProjSize.h *= this.near;
 
     if (this.screenSize.w > this.screenSize.h) {
       this.correctedProjSize.w *= this.screenSize.w / this.screenSize.h;
