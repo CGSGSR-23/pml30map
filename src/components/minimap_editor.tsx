@@ -4,12 +4,13 @@ import { FloorInfo } from "../../server/map_config";
 import { Vec2 } from "../system/linmath";
 import { uploadFile } from "./upload";
 import { MapEdit } from "../map_edit";
-import { InputFile } from "./support";
+import { InputFile, LogList, MessageType } from "./support";
 
 import { MinimapEditReqType, MinimapPosType } from "../../server/client";
 export interface MinimapEditorProps {
   socket: MapEdit;
   closeCallBack: ()=>void;
+  logListRef: LogList;
 }
 
 export interface MinimapEditorState {
@@ -254,6 +255,10 @@ export class MinimapEditor extends React.Component<MinimapEditorProps, MinimapEd
             <div className="flexRow spaceBetween">
               <p>Img start pos - <b>[{this.state.mapConfig.minimapInfo.imgStartPos.x}, {this.state.mapConfig.minimapInfo.imgStartPos.y}]</b></p>
               <input type="button" value="Edit" onClick={async ()=>{
+                if (this.state.editFloor == undefined) {
+                  this.props.logListRef.log({ type: MessageType.error, str: "You can't change without selected floor"});
+                  this.props.logListRef.log({ type: MessageType.log, str: "please select floor"});
+                }
                 this.enableSetPosMode( async ( pos: Vec2 )=>{
                   await this.props.socket.editMinimap({type: MinimapEditReqType.setImgPos, data: { posType: MinimapPosType.Start, pos: new Vec2(Math.floor(pos.x), Math.floor(pos.y)) }});
                   await this.updateConfig();

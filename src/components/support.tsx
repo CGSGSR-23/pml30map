@@ -88,3 +88,79 @@ export class InputFile extends React.Component<{ value: string, onLoadCallBack?:
   }
 
 }
+
+export enum MessageType {
+  log = 'log',
+  success = 'success',
+  warning = 'warning',
+  error = 'error',
+}
+
+export interface Message {
+  type: MessageType,
+  str: string,
+}
+
+interface LogListState {
+  massageStack: Array<Message>;
+}
+
+export class LogList extends React.Component<{}, LogListState> {
+  messageLifeTime = 5000;
+
+  constructor( props: { value: string, onLoadCallBack?: ()=>void } ) {
+    super(props);
+    this.state = {
+      massageStack: [],
+    };
+  }
+
+  render() {
+    return (<div style={{
+      zIndex: 900,
+      position: 'absolute',
+      //right: 0,
+      //top: 0,
+      //left: 0,
+      //bottom: 0,
+      //display: 'flex',
+      //justifyContent: 'center',
+      alignItems: 'center',
+      bottom: 0,
+      left: 0,
+    }}>
+      {this.state.massageStack.map((e)=>{
+        var boxStyle = 'box';
+
+        switch (e.type) {
+          case MessageType.log:
+            break;
+          case MessageType.success:
+            boxStyle = 'boxSuccess';
+            break;
+          case MessageType.warning:
+            boxStyle = 'boxWarning';
+            break;
+          case MessageType.error:
+            boxStyle = 'boxError';
+            break;
+        }
+        return (<div className={`gapped ${boxStyle}`}>
+          <p>{e.str}</p>
+        </div>);
+      })}
+    </div>);
+  }
+
+  shift() {
+    this.state.massageStack.shift();
+    this.setState({ massageStack: this.state.massageStack});
+  }
+
+  log( m: Message ) {
+    this.state.massageStack.push(m);
+    this.setState({ massageStack: this.state.massageStack });
+    setTimeout(()=>{ this.shift(); }, this.messageLifeTime);
+  }
+
+}

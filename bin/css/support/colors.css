@@ -5,6 +5,9 @@
   --color4: #cf9a9a;
   --color5: #43683a;
   --color6: #9bd38e;
+  --color7: #857807;
+  --color8: #cedf81;
+  --alpha:  50%;
 
   --text-color: white;
 
@@ -25,6 +28,15 @@
   /* Div */
   --div-bg-color: var(--lighting2-color);
   --div-br-color: var(--lighting3-color);
+  
+  --div-success-br-color: var(--color6);
+  --div-success-bg-color: color-mix(in srgb, var(--color6), transparent var(--alpha));
+  
+  --div-warning-br-color: var(--color8);
+  --div-warning-bg-color: color-mix(in srgb, var(--color8), transparent var(--alpha));
+  
+  --div-error-br-color: var(--color4);
+  --div-error-bg-color: color-mix(in srgb, var(--color4), transparent var(--alpha));
 
   /* Text */
   --text-bg-color: var(--shadow-color);

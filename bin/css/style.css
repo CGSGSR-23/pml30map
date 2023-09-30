@@ -45,8 +45,30 @@ h3 {
 }
 
 
-div.box {
-  background-color: var(--div-bg-color);
-  border: 0.2em solid var(--div-br-color);
-  padding: 0.5em;
+div {
+
+  &.box {
+    background-color:   var(--div-bg-color);
+    border: 0.2em solid var(--div-br-color);
+    padding: 0.5em;
+  }
+  
+  &.boxSuccess {
+    background-color:   var(--div-success-bg-color);
+    border: 0.2em solid var(--div-success-br-color);
+    padding: 0.5em;
+  }
+
+  &.boxWarning {
+    background-color:   var(--div-warning-bg-color);
+    border: 0.2em solid var(--div-warning-br-color);
+    padding: 0.5em;
+  }
+
+  &.boxError {
+    background-color:   var(--div-error-bg-color);
+    border: 0.2em solid var(--div-error-br-color);
+    padding: 0.5em;
+  }
+
 }

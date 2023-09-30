@@ -1,6 +1,6 @@
 import React from "react";
 import { URI } from "../socket";
-import { queryToStr } from "./support";
+import { queryToStr, LogList } from "./support";
 import { MinimapEditor } from "./minimap_editor";
 
 import { System, Unit } from "../system/system";
@@ -151,6 +151,7 @@ interface EditorState {
   nodeSettingsRef: React.MutableRefObject<any>;
   showNodeSettings: boolean;
   showMinimapSettings: boolean;
+  logListRef: React.MutableRefObject<LogList>;
 }
 
 interface QueryData {
@@ -205,8 +206,9 @@ export class Editor extends React.Component<EditorProps, EditorState> implements
       canvasRef: React.createRef(),
       floorRef: React.createRef(),
       floorNumberRef: React.createRef(),
-      menuJSX: (<></>),
       nodeSettingsRef: React.createRef(),
+      logListRef: React.createRef(),
+      menuJSX: (<></>),
       showNodeSettings: true,
       showMinimapSettings: false,
     };
@@ -263,10 +265,11 @@ export class Editor extends React.Component<EditorProps, EditorState> implements
           justifyContent: 'center',
           alignItems: 'center',
         }}>
-          <MinimapEditor socket={this.props.socket} closeCallBack={()=>{
+          <MinimapEditor socket={this.props.socket} logListRef={this.state.logListRef.current} closeCallBack={()=>{
             this.setState({ showMinimapSettings: false });
           }}/>
         </div>}
+        <LogList ref={this.state.logListRef}/>
       </>
     );
   } /* End of 'render' function */
