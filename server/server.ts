@@ -140,11 +140,19 @@ async function ioInit() {
   await DB.init("mongodb+srv://doadmin:i04J9b2t1X853Cuy@db-mongodb-pml30-75e49c39.mongo.ondigitalocean.com/admin?tls=true&authSource=admin", mapsConfig.map((e)=>{ return e.dbName; }));
   //await ftpStorage.connect();
   ftpStorage.setRootPath("pml30map.rf.gd/htdocs/storage/");
+
+  // REAL TMP SHIT BELOW - ftp tests, if I committed this shit, sorry
+
+  await ftpStorage.ensureDir('aaaaa');
+
+  // END OF REAL TMP SHIT
+
   const config = JSON.parse((await ftpStorage.downloadFile(configFileName)).toString());
 
   console.log('---------------');
   console.log(JSON.stringify(config));
   console.log('---------------');
+
   const saveConfig = async ()=>{
     const cStr = JSON.stringify(config);
     console.log("SAVE CONFIG:");

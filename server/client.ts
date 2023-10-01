@@ -24,6 +24,7 @@ export enum MinimapEditReqType {
   setModelPos = 'setModelPos',
   setFloorImgPos = 'setFloorImgPos',
 }
+
 export enum MinimapPosType {
   Start = 'Start',
   End = 'End',
@@ -39,6 +40,12 @@ export interface MinimapEditReq {
   type: MinimapEditReqType,
   data: number | MinimapSetPosData
 }
+const projectDirsTemplates: string[] = [
+  'imgs',
+  'imgs/panorama',
+  'imgs/minimap',
+  'models',
+];
 
 export class Client {
   accessLevel: number;
@@ -47,6 +54,8 @@ export class Client {
   dbName: string;
   mongodb: MongoDB;
   curMapConfig: MapConfig = undefined;
+  saveConfigCallBack;
+  ftpStorage: FtpConnection
 
   setupNodeRequests() {
 
@@ -147,29 +156,14 @@ export class Client {
     });
   } /* End of 'setupNodeRequests' function */
 
-  constructor( ftpStorage: FtpConnection, mapsConfig: MapConfig[], saveConfig: ()=>void, newMongo: MongoDB, socket, newAccessLevel: number ) {
-  
-    this.mongodb = newMongo;
-    console.log(`Client connected with id: ${socket.id}`);
+  createProject( name: string ) {
+    projectDirsTemplates.map(()=>{
+    });
+  }
 
-    this.accessLevel = newAccessLevel;
-    this.socket = socket;
-
-    // Map
-    this.dbName = socket.request._query.map != undefined ? this.mongodb.dbs[socket.request._query.map] != undefined ? socket.request._query.map : defaultMapName : defaultMapName;
-    console.log("Active map - " + this.dbName);
-    this.db = this.mongodb.dbs[this.dbName];
-
-    console.log(this.dbName);
-    for (let i = 0; i < mapsConfig.length; i++)
-      if (mapsConfig[i].name == this.dbName)
-      {
-        this.curMapConfig = mapsConfig[i];
-        break;
-      }
-    
+  setupMinimapEditor() {
     // Minimap
-    socket.on("editMinimap", ( req: MinimapEditReq, res )=>{
+    this.socket.on("editMinimap", ( req: MinimapEditReq, res )=>{
       var result: boolean = false;
       var floorIndex: number = 0;
       var setPosData: MinimapSetPosData = undefined;
@@ -269,11 +263,35 @@ export class Client {
       }
 
       if (result)
-        saveConfig();
+        this.saveConfigCallBack();
 
       LogMsg("editMinimap", req, result);
       res(result);
     });
+    
+  } /* End of 'setupMinimapEditor' function */
+
+  constructor( nftpStorage: FtpConnection, mapsConfig: MapConfig[], saveConfig: ()=>void, newMongo: MongoDB, socket, newAccessLevel: number ) {
+  
+    this.mongodb = newMongo;
+    console.log(`Client connected with id: ${socket.id}`);
+
+    this.accessLevel = newAccessLevel;
+    this.socket = socket;
+    this.saveConfigCallBack = saveConfig;
+
+    // Map
+    this.dbName = socket.request._query.map != undefined ? this.mongodb.dbs[socket.request._query.map] != undefined ? socket.request._query.map : defaultMapName : defaultMapName;
+    console.log("Active map - " + this.dbName);
+    this.db = this.mongodb.dbs[this.dbName];
+
+    console.log(this.dbName);
+    for (let i = 0; i < mapsConfig.length; i++)
+      if (mapsConfig[i].name == this.dbName)
+      {
+        this.curMapConfig = mapsConfig[i];
+        break;
+      }
     
     // Base requests
     
@@ -384,6 +402,7 @@ export class Client {
     });
 
     this.setupNodeRequests();
+    this.setupMinimapEditor();
   } /* End of 'contsructor' function */
 
 } /* End of 'client' class */

@@ -2,7 +2,6 @@ import { Connection, URI, NodeData, ConnectionData } from "./socket";
 import { Vec3 } from "./system/linmath";
 import { MapConfig } from "../server/map_config";
 import { loadImg } from "./components/support";
-import fetchAbsolute from "fetch-absolute";
 
 // interface ViewClientToServerEvents {
 //   ping: ( value: number )=>number;
@@ -47,7 +46,7 @@ export class MapView {
 
   async loadRes( fileName: string ) {
     console.log(this.mapConfig.storageURL + fileName);
-    return fetchAbsolute(this.mapConfig.storageURL + fileName);
+    return fetch(this.mapConfig.storageURL + fileName);
   }
 
   async updateConfig(): Promise<void> {

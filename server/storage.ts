@@ -92,40 +92,68 @@ export class FtpConnection {
     });
   }
 
-  setRootPath( newPath: string ) {
-    this.rootPath = newPath;
+  async checkReconnect() {
+    if (this.client.closed)
+      await this.connect();
+  }
+
+  async goToRootDir() {
+    await this.client.cd('/' + this.rootPath);
+    console.log('Ftp root dir - ' + await this.client.pwd());
+  }
+
+  async setRootPath( newPath: string ) {
+    console.log('Set root path');
+    await this.ftpCmdStack.pushCommand(async ()=>{
+      await this.checkReconnect();
+      this.rootPath = newPath;
+      return this.goToRootDir();
+    });
   } 
 
+  async ensureDir( path: string ) {
+    console.log(' Ensure path: ' + path);
+
+    await this.ftpCmdStack.pushCommand(async ()=>{
+      try {
+        const res = await this.client.ensureDir(path);
+        console.log(res);
+        await this.goToRootDir();
+      } catch (error) {
+        console.log("FTP ensure dir ERROR -- " + error);
+      }
+    });
+  }
+
   async uploadFile( fileData: Buffer, path: string, dest: string ): Promise<boolean> {
+
     console.log("FTP upload file " + this.rootPath + path + dest);
     console.log(fileData);
 
-    const res = await this.ftpCmdStack.pushCommand(async ()=>{
+    const pRes = await this.ftpCmdStack.pushCommand(async ()=>{
       var res = undefined;
       try {
-        if (this.client.closed)
-          await this.connect();
-        res = (await this.client.uploadFrom(getReadStream(new Uint8Array(fileData)), this.rootPath + path + dest)).code;
+        await this.checkReconnect();
+        res = (await this.client.uploadFrom(getReadStream(new Uint8Array(fileData)), path + dest)).code;
       } catch (error) {
         console.log("FTP upload file ERROR -- " + error);
       }
       return res;
     });
     
-    console.log(res == 226 ? "success" : "Something went wrong");
-    return res == 226;
+    console.log(pRes == 226 ? "success" : "Something went wrong");
+    return pRes == 226;
   }
 
   async downloadFile( fileName ): Promise<Buffer> {
-    console.log("FTP download file " + this.rootPath + fileName);
+    console.log("FTP download file " + fileName);
 
     const buf = new WriteStream();
 
     await this.ftpCmdStack.pushCommand(async ()=>{
       try {
-        if (this.client.closed)
-          await this.connect();
-        await this.client.downloadTo(buf, this.rootPath + fileName);
+        await this.checkReconnect();
+        await this.client.downloadTo(buf, fileName);
       } catch (error) {
         console.log("FTP download file ERROR -- " + error);
       }
