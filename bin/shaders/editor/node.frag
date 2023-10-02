@@ -21,7 +21,8 @@ uniform cameraBuffer {
 void main() {
   const vec3 lightDir = normalize(vec3(0.30, 0.47, 0.80));
 
-  outColor = vec4(vec3(0.30, 0.80, 0.47) * dot(normalize(drawNormal), lightDir), 1.0);
+  float diffuseCoef = clamp(dot(normalize(drawNormal), lightDir), 0.3, 1.0);
+  outColor = vec4(vec3(0.30, 0.80, 0.47) * diffuseCoef, 1.0);
   outPositionID = vec4(drawPosition, currentID);
 } /* main */
 

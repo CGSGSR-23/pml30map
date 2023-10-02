@@ -672,7 +672,7 @@ export class Topology {
   } /* tetrahedron */
 
   static plane(width: number, height: number): Topology {
-    let tpl = this.indexedPlane(width, height);
+    let tpl = Topology.indexedPlane(width, height);
 
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
@@ -687,17 +687,20 @@ export class Topology {
     return tpl;
   } /* plane */
 
-  static cylinder(subdivisionRate: number = 24): Topology {
-    let tpl = Topology.indexedPlane(subdivisionRate, 2);
+  static cylinder(radius: number, subdivisionRate: number = 24): Topology {
+    let tpl = new Topology();
 
+    tpl.idx = [];
+    tpl.vtx = [];
     tpl.type = TopologyType.TRIANGLE_STRIP;
 
+    let texCoordCoef = 1 / (subdivisionRate + 1);
     for (let i = 0; i <= subdivisionRate; i++) {
       let a = i / (subdivisionRate - 2) * Math.PI * 2;
       let ca = Math.cos(a), sa = Math.sin(a);
 
-      tpl.vtx.push(Vertex.fromCoord(ca, 0, sa));
-      tpl.vtx.push(Vertex.fromCoord(ca, 1, sa));
+      tpl.vtx.push(Vertex.fromCoord(ca * radius, 0, sa * radius, i * texCoordCoef, 0, ca, 0, sa));
+      tpl.vtx.push(Vertex.fromCoord(ca * radius, 1, sa * radius, i * texCoordCoef, 0, ca, 0, sa));
     }
 
     return tpl;

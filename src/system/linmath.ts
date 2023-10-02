@@ -334,6 +334,14 @@ export class Vec3 {
   neg(): Vec3 {
     return new Vec3(-this.x, -this.y, -this.z);
   } /* neg */
+
+  /**
+   * XZ vector projection getting function
+   * @returns Projection(this, XZ)
+   */
+  xz(): Vec2 {
+    return new Vec2(this.x, this.z);
+  } /* xz */
 } /* Vec3 */
 
 export class Vec2 {

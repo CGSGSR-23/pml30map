@@ -15,7 +15,8 @@ import { NodeData, ConnectionData } from "../socket";
 import { ConnectionCheckOutFailedEvent } from "mongodb";
 
 class Node implements Unit {
-  manager: GraphManager;
+  private manager: GraphManager;
+  private transform: LinMath.Mat4;
 
   unitType: string = "Node";
   doSuicide: boolean;
@@ -23,24 +24,35 @@ class Node implements Unit {
   data: NodeData;
   uri: URI;
 
+
   static create(system: System, manager: GraphManager, data: NodeData): Node {
     let node = new Node();
 
     node.manager = manager;
     node.data = data;
+    node.transform = LinMath.Mat4.translate(data.position);
 
     return node;
   } /* create */
 
-  response(system: System): void {
+  /**
+   * Node transformation matrix update function
+   */
+  updateTrasnform() {
+    this.transform = LinMath.Mat4.translate(this.data.position);
+  } /* updateTrasnform */
 
+  response(system: System): void {
+    system.drawModel(this.manager.nodeModel, this.transform);
   } /* response */
 } /* Node */
 
 class Connection implements Unit {
+  private manager: GraphManager;
+  private transform: LinMath.Mat4;
+
   unitType: string = "Connection";
   doSuicide: boolean;
-  manager: GraphManager;
 
   data: ConnectionData;
   uri: URI;
@@ -51,11 +63,32 @@ class Connection implements Unit {
     connection.manager = manager;
     connection.data = data;
 
+    connection.updateTransform();
+
     return connection;
   } /* create */
 
-  response(system: System): void {
+  /**
+   * Update transformation matrices of this connection
+   */
+  updateTransform() {
+    let
+      firstPos = this.manager.getNode(this.data.first).data.position,
+      secondPos = this.manager.getNode(this.data.second).data.position;
+    let dir = secondPos.sub(firstPos);
+    let len = dir.length();
+    dir = dir.mulNum(1 / len);
+    let elevation = Math.acos(dir.y);
 
+    this.transform = LinMath.Mat4.identity()
+      .mul(LinMath.Mat4.scaleNum(1, len, 1))
+      .mul(LinMath.Mat4.rotate(elevation, new LinMath.Vec3(-dir.z, 0, dir.x)))
+      .mul(LinMath.Mat4.translate(firstPos))
+    ;
+  } /* updateTransform */
+
+  response(system: System): void {
+    system.drawModel(this.manager.connectionModel, this.transform);
   } /* response */
 } /* Connection */
 
@@ -72,13 +105,13 @@ class GraphManager implements Unit {
 
   static async create(system: System): Promise<GraphManager> {
     let manager = new GraphManager();
-
     manager.system = system;
-    let connectionMaterial = await system.createMaterial("bin/shaders/editor/connection");
-    manager.connectionModel = system.createModelFromTopology(Topology.cylinder(), connectionMaterial);
 
     let nodeMaterial = await system.createMaterial("bin/shaders/editor/node");
-    manager.nodeModel = system.createModelFromTopology(Topology.sphere(1), nodeMaterial);
+    manager.nodeModel = system.createModelFromTopology(Topology.sphere(0.5), nodeMaterial);
+
+    let connectionMaterial = await system.createMaterial("bin/shaders/editor/connection");
+    manager.connectionModel = system.createModelFromTopology(Topology.cylinder(0.2), connectionMaterial);
 
     return manager;
   } /* create */
@@ -96,6 +129,10 @@ class GraphManager implements Unit {
 
     return unit;
   } /* addConnection */
+
+  getNode(uri: URI): Node | undefined {
+    return this.nodes.get(uri.toStr());
+  } /* getNode */
 
   delNode(node: Node): boolean {
     let nodeKey = node.data.uri.toStr();
@@ -409,16 +446,26 @@ export class Editor extends React.Component<EditorProps, EditorState> implements
       </>)
     });
 
-    // Add nodes 
-    let nodes = await this.props.socket.getAllNodes();
-    for (let nodeURI of nodes)
-      this.graph.addNode(await this.props.socket.getNode(nodeURI));
+    // Add nodes
+    let nodeURIs = await this.props.socket.getAllNodes();
+    let nodeDatas = await this.props.socket.getAllNodesData();
+
+    for (let i = 0, len = nodeURIs.length; i < len; i++) {
+      let data = nodeDatas[i];
+      let uri = nodeURIs[i];
+
+      this.graph.addNode({
+        uri: uri,
+        name: data.name,
+        skysphere: data.skysphere,
+        position: LinMath.Vec3.fromObject(data.position),
+        floor: data.floor,
+      });
+    }
 
     // Add connections
     let connections = await this.props.socket.getAllConnections();
     for (let connection of connections)
       this.graph.addConnection(connection);
-
-    console.log(`nodes: ${nodes.length}, connections: ${connections.length}`);
   } /* componentDidMount */
 } /* End of 'Viewer' class */
