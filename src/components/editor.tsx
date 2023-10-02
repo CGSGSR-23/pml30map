@@ -13,6 +13,7 @@ import { MapEdit } from "../map_edit";
 import { MapConfig } from "../../server/map_config";
 import { NodeData, ConnectionData } from "../socket";
 import { ConnectionCheckOutFailedEvent } from "mongodb";
+import { ProjectManager } from "./project_manager";
 
 class Node implements Unit {
   private manager: GraphManager;
@@ -259,6 +260,7 @@ interface EditorState {
   nodeSettingsRef: React.MutableRefObject<any>;
   showNodeSettings: boolean;
   showMinimapSettings: boolean;
+  showProjectManager: boolean;
   logListRef: React.MutableRefObject<LogList>;
 }
 
@@ -320,6 +322,7 @@ export class Editor extends React.Component<EditorProps, EditorState> implements
       menuJSX: (<></>),
       showNodeSettings: true,
       showMinimapSettings: false,
+      showProjectManager: false,
     };
     window.addEventListener("resize", () => {
       this.system.resize(this.state.canvasRef.current.clientWidth, this.state.canvasRef.current.clientHeight);
@@ -376,6 +379,27 @@ export class Editor extends React.Component<EditorProps, EditorState> implements
         }}>
           <MinimapEditor socket={this.props.socket} logListRef={this.state.logListRef.current} closeCallBack={()=>{
             this.setState({ showMinimapSettings: false });
+          }}/>
+        </div>}
+        {this.state.showProjectManager && <div style={{
+          zIndex: 4,
+          position: 'absolute',
+          backgroundColor: 'var(--shadow2-color)',
+
+          right: 0,
+          top: 0,
+          left: 0,
+          bottom: 0,
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}>
+          <ProjectManager socket={this.props.socket} logListRef={this.state.logListRef.current} closeCallBack={()=>{
+            this.setState({ showProjectManager: false });
+          }} goToMapCallBack={(m)=>{
+            this.curQuery.map = m;
+            this.updateQuery();
+            location.reload();
           }}/>
         </div>}
         <LogList ref={this.state.logListRef}/>
@@ -442,6 +466,9 @@ export class Editor extends React.Component<EditorProps, EditorState> implements
         </div>}
         <input type="button" value="Minimap settings" onClick={()=>{
           this.setState({ showMinimapSettings: true });
+        }}/>
+        <input type="button" value="Show project manager" onClick={()=>{
+          this.setState({ showProjectManager: true });
         }}/>
       </>)
     });

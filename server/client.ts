@@ -358,6 +358,11 @@ export class Client {
       res(this.curMapConfig);
     });
 
+    socket.on("getConfigReq", ( res )=>{
+      LogMsg("getConfigReq", "", this.mapsConfig);
+      res(this.mapsConfig);
+    });
+
     // Global DB requests
 
     socket.on("getAvailableDBs", ( res )=>{
