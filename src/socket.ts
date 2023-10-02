@@ -2,6 +2,33 @@ import { io, Socket } from "socket.io-client";
 import { Vec3 } from "./system/linmath";
 import { getQuery } from "./components/support";
 
+
+export interface ServerNodeData {
+  name: string,
+  skysphere: { path: string, rotation: number },
+  position: Vec3,
+  floor: number,
+}
+
+export interface NodeData {
+  uri: URI;
+  name: string;
+  skysphere: { path: string, rotation: number },
+  position: Vec3,
+  floor: number,
+}
+
+export interface ServerConnectionData {
+  id1: Uint8Array,
+  id2: Uint8Array,
+}
+
+export interface ConnectionData {
+  uri: URI;
+  first: URI;
+  second: URI;
+};
+
 export interface EventsMap {
   [event: string]: any;
 }
@@ -42,18 +69,6 @@ export class URI {
     }
   }
 } /* End of 'URI' class */
-
-export interface NodeData {
-  name: string,
-  skysphere: { path: string, rotation: number },
-  position: Vec3,
-  floor: number,
-}
-
-export interface ConnectionData {
-  id1: Uint8Array,
-  id2: Uint8Array,
-}
 
 export class Connection {
   socket: Socket;

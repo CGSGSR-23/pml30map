@@ -1,4 +1,4 @@
-import { Connection, URI, NodeData, ConnectionData } from "./socket";
+import { Connection, URI, ServerNodeData, ServerConnectionData, NodeData, ConnectionData } from "./socket";
 import { Vec3 } from "./system/linmath";
 import { MapConfig } from "../server/map_config";
 import { loadImg } from "./components/support";
@@ -66,17 +66,30 @@ export class MapView {
   }
 
   async getNode( uri: URI ): Promise<NodeData> {
-    return this.socket.send("getNodeReq", uri.id) as Promise<NodeData>;
+    return new Promise<NodeData>(async (resolve, reject) => {
+      let data = await this.socket.send("getNodeReq", uri.id) as ServerNodeData;
+
+      resolve({
+        uri: uri,
+        name: data.name,
+        skysphere: data.skysphere,
+        position: Vec3.fromObject(data.position),
+        floor: data.floor,
+      });
+    });
   }
 
-
   async getNodeConnections( uri: URI ): Promise<ConnectionData[]> {
-    let cA = await this.socket.send("getNodeConnectionsReq", uri.id) as ConnectionData[];
+    let cA = await this.socket.send("getNodeConnectionsReq", uri.id) as ServerConnectionData[];
 
     let outA = [];
     
     for (let i = 0; i < cA.length; i++)
-      outA[i] = [new URI(cA[i].id1), new URI(cA[i].id2)];
+      outA[i] = {
+        uri: new URI([]), // !!!ACHTUNG!!!
+        first: cA[i].id1,
+        second: cA[i].id1,
+      };
     return outA;
   }
 

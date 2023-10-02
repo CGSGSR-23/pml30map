@@ -1,4 +1,4 @@
-import { Connection, URI, NodeData, ConnectionData } from "./socket";
+import { Connection, URI, NodeData, ConnectionData, ServerNodeData, ServerConnectionData } from "./socket";
 import { Vec3 } from "./system/linmath";
 import { MapView } from "./map_view";
 import { MinimapEditReq } from "../server/client";
@@ -34,12 +34,19 @@ export class MapEdit extends MapView {
     return (await this.socket.send("editMinimap", req)) as boolean;
   }
 
-  async addNode( data: NodeData ): Promise<URI> {
+  async addNode( data: ServerNodeData ): Promise<URI> {
     return new URI(await this.socket.send("addNodeReq", data));
   }
 
   async updateNode( uri: URI, data: NodeData ): Promise<boolean> {
-    return this.socket.send("updateNodeReq", uri.id, data) as Promise<boolean>;
+    let serverData: ServerNodeData = {
+      name: data.name,
+      skysphere: { path: data.skysphere.path, rotation: data.skysphere.rotation },
+      position: data.position,
+      floor: data.floor,
+    };
+
+    return this.socket.send("updateNodeReq", uri.id, serverData) as Promise<boolean>;
   }
 
   async getAllNodes(): Promise<URI[]> {
@@ -47,12 +54,17 @@ export class MapEdit extends MapView {
   }
 
   async getAllConnections(): Promise<ConnectionData[]> {
-    let cA = await this.socket.send("getAllConnectionsReq") as ConnectionData[];
+    let cA = await this.socket.send("getAllConnectionsReq") as ServerConnectionData[];
 
     let outA = [];
 
+    this.getDefNodeURI()
     for (let i = 0; i < cA.length; i++)
-      outA[i] = [new URI(cA[i].id1), new URI(cA[i].id2)];
+      outA[i] = {
+        uri: null,
+        first: new URI(cA[i].id1),
+        second: new URI(cA[i].id2),
+      };
     return outA;
   }
 

@@ -147,7 +147,7 @@ export class Viewer extends React.Component<ViewerProps, ViewerState> implements
       return false;
     this.nodeTransitionStarted = true;
     // Canvas part
-
+    
     // Minimap part
     console.log(uri.toStr());
     const node = await this.props.socket.getNode(uri);
@@ -237,7 +237,7 @@ export class Viewer extends React.Component<ViewerProps, ViewerState> implements
     this.system.addUnit(this);
 
     this.neighbourManager = await NeighbourArrowManager.create(this.system);
-
+    
     this.system.runMainLoop();
 
     window.addEventListener("resize", () => {

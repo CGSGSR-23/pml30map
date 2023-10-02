@@ -11,10 +11,14 @@ import * as CameraController from "../units/camera_controller";
 import * as LinMath from '../system/linmath';
 import { MapEdit } from "../map_edit";
 import { MapConfig } from "../../server/map_config";
+import { NodeData, ConnectionData } from "../socket";
+
 
 class Node implements Unit {
   unitType: string = "Node";
   doSuicide: boolean;
+
+  data: NodeData;
   uri: URI;
 
   response(system: System): void {
@@ -25,6 +29,8 @@ class Node implements Unit {
 class Connection implements Unit {
   unitType: string = "Connection";
   doSuicide: boolean;
+
+  nodes: { first: URI, Second: URI };
   uri: URI;
 
   response(system: System): void {
@@ -32,9 +38,25 @@ class Connection implements Unit {
   } /* response */
 } /* Connection */
 
+class ConnectionManager implements Unit {
+  unitType: string = "ConnectionManager";
+  doSuicide: boolean;
+
+  private nodes: Map<URI, Node>;
+  private connections: Map<URI, Connection>;
+
+  /**
+   * Unit response function
+   * @param system System this unit is responsed by
+   */
+  response(system: System): void {
+    
+  } /* response */
+} /* ConnectionManager */
+
 class ObjectSelector implements Unit {
   unitType: string = "NodeSelector";
-  doSuicide: boolean
+  doSuicide: boolean;
 
   static create(system: System): ObjectSelector {
     let unit = new ObjectSelector();
@@ -60,18 +82,18 @@ class ObjectSelector implements Unit {
   } /* response */
 } /* NodeSelector */
 
-interface NodeData {
-  uri: URI;
-  name: string;
-  skysphere: string;
-  floor: number;
-} /* NodeData */
+interface DisplayedNodeData {
+  uri: URI,
+  name: string,
+  skysphere: {path: string, rotation: number},
+  floor: number,
+};
 
 interface NodeSettingsProps {
-  data: NodeData;
+  data: DisplayedNodeData;
   onMakeDefaultCallBack: ()=>void,
   onDeleteNodeCallBack: ()=>void,
-  onSave: ( newData: NodeData )=>void,
+  onSave: ( newData: DisplayedNodeData )=>void,
   onClose: ()=>void,
 } /* NodeSettingsProps */
 
@@ -240,7 +262,7 @@ export class Editor extends React.Component<EditorProps, EditorState> implements
           position: 'absolute',
           width: '22em',
         }}>
-          {this.state.showNodeSettings && <NodeSettings ref={this.state.nodeSettingsRef} data={{floor: 0, name: 'nodename', skysphere: 'nodsjysphere', uri: new URI('[0, 0, 0, 0, 0, 0, 0, 0]')}}
+          {this.state.showNodeSettings && <NodeSettings ref={this.state.nodeSettingsRef} data={{floor: 0, name: 'nodename', skysphere: {rotation: 0, path: 'nodsjysphere'}, uri: new URI('[0, 0, 0, 0, 0, 0, 0, 0]')}}
           onDeleteNodeCallBack={()=>{}} onClose={()=>{}} onMakeDefaultCallBack={()=>{}} onSave={()=>{}}/>}
         </div>
         <div className="box" style={{
