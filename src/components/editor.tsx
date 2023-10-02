@@ -12,14 +12,25 @@ import * as LinMath from '../system/linmath';
 import { MapEdit } from "../map_edit";
 import { MapConfig } from "../../server/map_config";
 import { NodeData, ConnectionData } from "../socket";
-
+import { ConnectionCheckOutFailedEvent } from "mongodb";
 
 class Node implements Unit {
+  manager: GraphManager;
+
   unitType: string = "Node";
   doSuicide: boolean;
 
   data: NodeData;
   uri: URI;
+
+  static create(system: System, manager: GraphManager, data: NodeData): Node {
+    let node = new Node();
+
+    node.manager = manager;
+    node.data = data;
+
+    return node;
+  } /* create */
 
   response(system: System): void {
 
@@ -29,58 +40,96 @@ class Node implements Unit {
 class Connection implements Unit {
   unitType: string = "Connection";
   doSuicide: boolean;
+  manager: GraphManager;
 
-  nodes: { first: URI, Second: URI };
+  data: ConnectionData;
   uri: URI;
+
+  static create(system: System, manager: GraphManager, data: ConnectionData): Connection {
+    let connection = new Connection();
+
+    connection.manager = manager;
+    connection.data = data;
+
+    return connection;
+  } /* create */
 
   response(system: System): void {
 
   } /* response */
 } /* Connection */
 
-class ConnectionManager implements Unit {
+class GraphManager implements Unit {
   unitType: string = "ConnectionManager";
   doSuicide: boolean;
 
-  private nodes: Map<URI, Node>;
-  private connections: Map<URI, Connection>;
+  private system: System;
+  private nodes: Map<string, Node> = new Map<string, Node>();
+  private connections: Map<string, Connection> = new Map<string, Connection>();
+
+  nodeModel: Model;
+  connectionModel: Model;
+
+  static async create(system: System): Promise<GraphManager> {
+    let manager = new GraphManager();
+
+    manager.system = system;
+    let connectionMaterial = await system.createMaterial("bin/shaders/editor/connection");
+    manager.connectionModel = system.createModelFromTopology(Topology.cylinder(), connectionMaterial);
+
+    let nodeMaterial = await system.createMaterial("bin/shaders/editor/node");
+    manager.nodeModel = system.createModelFromTopology(Topology.sphere(1), nodeMaterial);
+
+    return manager;
+  } /* create */
+
+  async addNode(data: NodeData): Promise<Node> {
+    let unit = await this.system.createUnit(Node.create, this, data) as Node;
+    this.nodes.set(data.uri.toStr(), unit);
+
+    return unit;
+  } /* addNode */
+  
+  async addConnection(data: ConnectionData): Promise<Connection> {
+    let unit = await this.system.createUnit(Connection.create, this, data) as Connection;
+    this.connections.set(`${data.first.toStr()} - ${data.second.toStr()}`, unit);
+
+    return unit;
+  } /* addConnection */
+
+  delNode(node: Node): boolean {
+    let nodeKey = node.data.uri.toStr();
+    let value = this.nodes.get(nodeKey);
+
+    if (value !== undefined) {
+      value.doSuicide = true;
+      this.nodes.delete(nodeKey);
+      return true;
+    }
+    return false;
+  } /* delNode */
+
+  delConnection(connection: Connection): boolean {
+    let connectionKey = `${connection.data.first.toStr()} - ${connection.data.second.toStr()}`;
+    let value = this.connections.get(connectionKey);
+
+    if (value !== undefined) {
+      value.doSuicide = true;
+      this.connections.delete(connectionKey);
+      return true;
+    }
+
+    return false;
+  } /* delConnection */
 
   /**
    * Unit response function
    * @param system System this unit is responsed by
    */
   response(system: System): void {
-    
+
   } /* response */
 } /* ConnectionManager */
-
-class ObjectSelector implements Unit {
-  unitType: string = "NodeSelector";
-  doSuicide: boolean;
-
-  static create(system: System): ObjectSelector {
-    let unit = new ObjectSelector();
-
-    system.canvas.addEventListener('mousemove', (event: MouseEvent) => {
-      let unit = system.getScreenUnit(event.clientX, event.clientY);
-
-      if (unit === null)
-        return;
-
-      if (unit.unitType === "Node") {
-
-      } else if (unit.unitType === "Connection") {
-
-      }
-    });
-
-    return unit;
-  } /* create */
-
-  response(system: System): void {
-
-  } /* response */
-} /* NodeSelector */
 
 interface DisplayedNodeData {
   uri: URI,
@@ -186,6 +235,7 @@ interface QueryData {
  */
 export class Editor extends React.Component<EditorProps, EditorState> implements Unit {
   system: System = null;
+  graph: GraphManager;
   curQuery: QueryData = {};
 
   unitType: string = "EditorUnit";
@@ -194,7 +244,7 @@ export class Editor extends React.Component<EditorProps, EditorState> implements
   doSuicide: boolean;
 
   response(system: System): void {
-    
+  
   } /* response */
 
   asyncSetState( newState: any ) {
@@ -303,6 +353,7 @@ export class Editor extends React.Component<EditorProps, EditorState> implements
 
     this.skysphere = await this.system.createUnit(Skysphere.create, "bin/imgs/default.png") as Skysphere;
     this.baseConstruction = await this.system.createUnit(BaseConstruction.create, "bin/models/pml30map.obj") as BaseConstruction;
+    this.graph = await this.system.createUnit(GraphManager.create) as GraphManager;
     this.system.createUnit(CameraController.Arcball.create);
 
     this.system.addUnit(this);
@@ -357,5 +408,17 @@ export class Editor extends React.Component<EditorProps, EditorState> implements
         }}/>
       </>)
     });
+
+    // Add nodes 
+    let nodes = await this.props.socket.getAllNodes();
+    for (let nodeURI of nodes)
+      this.graph.addNode(await this.props.socket.getNode(nodeURI));
+
+    // Add connections
+    let connections = await this.props.socket.getAllConnections();
+    for (let connection of connections)
+      this.graph.addConnection(connection);
+
+    console.log(`nodes: ${nodes.length}, connections: ${connections.length}`);
   } /* componentDidMount */
 } /* End of 'Viewer' class */

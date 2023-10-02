@@ -687,13 +687,13 @@ export class Topology {
     return tpl;
   } /* plane */
 
-  static cylinder(size: number = 24): Topology {
-    let tpl = Topology.indexedPlane(size, 2);
+  static cylinder(subdivisionRate: number = 24): Topology {
+    let tpl = Topology.indexedPlane(subdivisionRate, 2);
 
     tpl.type = TopologyType.TRIANGLE_STRIP;
 
-    for (let i = 0; i <= size; i++) {
-      let a = i / (size - 2) * Math.PI * 2;
+    for (let i = 0; i <= subdivisionRate; i++) {
+      let a = i / (subdivisionRate - 2) * Math.PI * 2;
       let ca = Math.cos(a), sa = Math.sin(a);
 
       tpl.vtx.push(Vertex.fromCoord(ca, 0, sa));

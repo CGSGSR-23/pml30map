@@ -29,7 +29,7 @@ export class BaseConstruction implements Unit {
     result.uniformBuffer.writeData(new Float32Array([1, 1, 1, result.cutHeight]));
     result.uniformBuffer.bufferName = "baseConstructionBuffer";
 
-    result.material = await system.createMaterial("bin/shaders/baseConstruction");
+    result.material = await system.createMaterial("bin/shaders/editor/baseConstruction");
     result.material.addResource(result.uniformBuffer);
     result.model = system.createModelFromTopology(await Topology.modelObj(modelPath), result.material);
 
