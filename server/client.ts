@@ -1,13 +1,13 @@
 import { MongoDB } from "./mongodb";
 import { FloorInfo, MinimapInfo } from "./map_config";
 import { Vec2, Vec3 } from "../src/system/linmath";
-import { MapConfig } from "./map_config";
+import { MapConfig, Config } from "./map_config";
 import { FtpConnection } from "./storage";
 import { Socket } from "socket.io";
 
 const defaultMapName = 'pml30map';
 
-export function LogMsg( msgName, input, output ) {
+export function LogMsg( msgName: string, input: any, output: any ) {
   console.log(`<--- MESSAGE '${msgName}' --->`);
   console.log("INPUT:");
   console.log(input);
@@ -53,6 +53,7 @@ export class Client {
   db;
   dbName: string;
   mongodb: MongoDB;
+  mapsConfig: Config;
   curMapConfig: MapConfig = undefined;
   saveConfigCallBack;
   ftpStorage: FtpConnection
@@ -123,6 +124,13 @@ export class Client {
       res(nNodes);
     });
 
+    this.socket.on("getNeighboursDataReq", async ( uri, res )=>{
+      const nodesURI = await this.db.getNeighbours(uri);
+      const nodesData = nodesURI.map((i)=>{ this.db.getNode(i)});
+      LogMsg("getNeighboursDataReq", uri, nodesData);
+      res(nodesData);
+    });
+
     this.socket.on("getAllNodesReq", async ( res )=>{
       let outData = await this.db.getAllNodeURIs();
       LogMsg("getAllNodesReq", "", outData);
@@ -156,12 +164,41 @@ export class Client {
     });
   } /* End of 'setupNodeRequests' function */
 
-  createProject( name: string ) {
-    projectDirsTemplates.map(()=>{
-    });
-  }
+  setupProjectEditorRequests() {
+    this.socket.on("createProject", ( name: string, res )=>{
+      var alreadyExist = false;
 
-  setupMinimapEditor() {
+      for (let mi in this.mapsConfig.maps)
+        if (this.mapsConfig.maps[mi].name == name) {
+          alreadyExist = true;
+          break;
+        }
+      
+      if (alreadyExist)
+        res(false);
+
+      this.mapsConfig.maps = [...this.mapsConfig.maps, {
+        name: name,
+        dbName: name,
+        minimapInfo: {
+          name: name,
+          defFloor: 0,
+          floorCount: 0,
+          firstFloor: 0,
+          floors: [],
+          imgStartPos: new Vec2(0, 0),
+          imgEndPos: new Vec2(0, 0),
+          modelStartPos: new Vec2(0, 0),
+          modelEndPos: new Vec2(0, 0),
+        },
+        storageURL: "dont use",
+      } as MapConfig];
+      this.saveConfigCallBack();
+    });
+
+  } /* End of 'setupProjectEditorRequests' function */
+
+  setupMinimapEditorRequests() {
     // Minimap
     this.socket.on("editMinimap", ( req: MinimapEditReq, res )=>{
       var result: boolean = false;
@@ -269,9 +306,9 @@ export class Client {
       res(result);
     });
     
-  } /* End of 'setupMinimapEditor' function */
+  } /* End of 'setupMinimapEditorRequests' function */
 
-  constructor( nftpStorage: FtpConnection, mapsConfig: MapConfig[], saveConfig: ()=>void, newMongo: MongoDB, socket, newAccessLevel: number ) {
+  constructor( nftpStorage: FtpConnection, mapsConfig: Config, saveConfig: ()=>void, newMongo: MongoDB, socket, newAccessLevel: number ) {
   
     this.mongodb = newMongo;
     console.log(`Client connected with id: ${socket.id}`);
@@ -279,6 +316,7 @@ export class Client {
     this.accessLevel = newAccessLevel;
     this.socket = socket;
     this.saveConfigCallBack = saveConfig;
+    this.mapsConfig = mapsConfig;
 
     // Map
     this.dbName = socket.request._query.map != undefined ? this.mongodb.dbs[socket.request._query.map] != undefined ? socket.request._query.map : defaultMapName : defaultMapName;
@@ -286,10 +324,10 @@ export class Client {
     this.db = this.mongodb.dbs[this.dbName];
 
     console.log(this.dbName);
-    for (let i = 0; i < mapsConfig.length; i++)
-      if (mapsConfig[i].name == this.dbName)
+    for (let i = 0; i < mapsConfig.maps.length; i++)
+      if (mapsConfig.maps[i].name == this.dbName)
       {
-        this.curMapConfig = mapsConfig[i];
+        this.curMapConfig = mapsConfig.maps[i];
         break;
       }
     
@@ -305,7 +343,7 @@ export class Client {
     });
 
     socket.on("getAllMapsReq", (res)=>{
-      var maps: string[] = mapsConfig.map((e)=>{ return e.name; });
+      var maps: string[] = mapsConfig.maps.map((e)=>{ return e.name; });
       LogMsg("getAllMapsReq", "", maps);
       res(maps);
     });
@@ -323,7 +361,7 @@ export class Client {
     // Global DB requests
 
     socket.on("getAvailableDBs", ( res )=>{
-      let names = mapsConfig.map((e)=>{ return e.name; });
+      let names = mapsConfig.maps.map((e)=>{ return e.name; });
       LogMsg("getAvailableDBs", "", names);
       res(names);
     });
@@ -331,7 +369,7 @@ export class Client {
     socket.on("getDBInfo", async ( name: string, res )=>{
       let info = {};
 
-      mapsConfig.map((e)=>{
+      mapsConfig.maps.map((e)=>{
         if (e.name == name)
           info = e;
       });
@@ -343,7 +381,7 @@ export class Client {
     socket.on("switchDB", async ( name, res )=>{
       let isValid = false;
 
-      mapsConfig.map((e)=>{
+      mapsConfig.maps.map((e)=>{
         if (e.name == name)
           isValid = false;
       });
@@ -402,7 +440,7 @@ export class Client {
     });
 
     this.setupNodeRequests();
-    this.setupMinimapEditor();
+    this.setupMinimapEditorRequests();
   } /* End of 'contsructor' function */
 
 } /* End of 'client' class */

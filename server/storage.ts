@@ -6,11 +6,8 @@ class CommandStack {
   isCommitting = false;
 
   commitCycle() {
-    //console.log("Cycle == " + this.stack.length);
     if (this.stack.length > 0)
-    {
       this.stack[0]().then(()=>{ this.stack.shift(); }).then(()=>{ this.commitCycle(); });
-    }
     else
       this.isCommitting = false;
   }
@@ -18,7 +15,6 @@ class CommandStack {
   commit() {
     if (this.isCommitting == true)
       return;
-    //console.log("Commit");
     this.isCommitting = true;
     new Promise(()=>{ this.commitCycle(); });
   }
@@ -27,16 +23,13 @@ class CommandStack {
     const outP = new Promise((resolve)=>{
       this.stack.push(async ()=>{
         const id = Math.random();
-        //console.log("Command " + id + "launched");
         await resolve(await callBack());
-        //console.log("Command " + id + "finished");
       });
     });
     this.commit();
     return outP;
   }
 }
-
 
 // Streams
 
@@ -72,10 +65,11 @@ export function getReadStream( data ) {
 export class FtpConnection {
   protected client = new ftp.Client();
   protected rootPath: string = "";
-  ftpCmdStack = new CommandStack;
-  host: string;
-  user: string;
-  password: string;
+  protected ftpCmdStack = new CommandStack;
+  protected host: string;
+  protected user: string;
+  protected password: string;
+  curPath: string;
 
   constructor( newHost: string, newUser: string, newPassword: string ) {
     this.host = newHost;
@@ -83,6 +77,7 @@ export class FtpConnection {
     this.password = newPassword;
   }
 
+  // Connect 
   async connect() {
     await this.client.access({
       host: this.host,
@@ -92,49 +87,67 @@ export class FtpConnection {
     });
   }
 
-  async checkReconnect() {
+  protected async checkReconnectUnsafe() {
     if (this.client.closed)
       await this.connect();
   }
+  
+  // cd
 
-  async goToRootDir() {
-    await this.client.cd('/' + this.rootPath);
-    console.log('Ftp root dir - ' + await this.client.pwd());
+  protected async cdUnsafe( path: string ) {
+    if (this.curPath == path)
+      return;
+
+    const res = await this.client.cd('/' + path);
+    this.curPath = path;
+    
+    return res;
+  }
+
+  protected async goToRootDirUnsafe() {
+    await this.cdUnsafe(this.rootPath);
   }
 
   async setRootPath( newPath: string ) {
-    console.log('Set root path');
     await this.ftpCmdStack.pushCommand(async ()=>{
-      await this.checkReconnect();
+      console.log('Set root path to ' + newPath);
+      await this.checkReconnectUnsafe();
       this.rootPath = newPath;
-      return this.goToRootDir();
+      return this.goToRootDirUnsafe();
     });
   } 
 
-  async ensureDir( path: string ) {
-    console.log(' Ensure path: ' + path);
+  // Ensure
 
+  protected async ensureDirUnsafe( path: string ) {
+    this.curPath = path;
+    return this.client.ensureDir(path);
+  }
+
+  async ensureDir( path: string ) {
     await this.ftpCmdStack.pushCommand(async ()=>{
       try {
-        const res = await this.client.ensureDir(path);
-        console.log(res);
-        await this.goToRootDir();
+        //await this.goToRootDirUnsafe();
+        await this.checkReconnectUnsafe();
+        const res = await this.ensureDirUnsafe(path);
       } catch (error) {
         console.log("FTP ensure dir ERROR -- " + error);
       }
     });
   }
 
-  async uploadFile( fileData: Buffer, path: string, dest: string ): Promise<boolean> {
+  // Upload
 
+  async uploadFile( fileData: Buffer, path: string, dest: string ): Promise<boolean> {
     console.log("FTP upload file " + this.rootPath + path + dest);
-    console.log(fileData);
+    //console.log(fileData);
 
     const pRes = await this.ftpCmdStack.pushCommand(async ()=>{
       var res = undefined;
       try {
-        await this.checkReconnect();
-        res = (await this.client.uploadFrom(getReadStream(new Uint8Array(fileData)), path + dest)).code;
+        await this.checkReconnectUnsafe();
+        await this.ensureDirUnsafe('/' + this.rootPath + path);
+        res = (await this.client.uploadFrom(getReadStream(new Uint8Array(fileData)), dest)).code;
       } catch (error) {
         console.log("FTP upload file ERROR -- " + error);
       }
@@ -144,6 +157,8 @@ export class FtpConnection {
     console.log(pRes == 226 ? "success" : "Something went wrong");
     return pRes == 226;
   }
+  
+  // Download
 
   async downloadFile( fileName ): Promise<Buffer> {
     console.log("FTP download file " + fileName);
@@ -152,7 +167,8 @@ export class FtpConnection {
 
     await this.ftpCmdStack.pushCommand(async ()=>{
       try {
-        await this.checkReconnect();
+        await this.checkReconnectUnsafe();
+        await this.goToRootDirUnsafe();
         await this.client.downloadTo(buf, fileName);
       } catch (error) {
         console.log("FTP download file ERROR -- " + error);

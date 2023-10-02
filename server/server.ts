@@ -6,13 +6,14 @@ const fileupload = require('express-fileupload');
 import { Vec2 } from "../src/system/linmath";
 import { MongoDB } from "./mongodb";
 import { Client } from "./client";
-import { MapConfig } from "./map_config";
+import { Config, MapConfig } from "./map_config";
 import * as fs from "fs";  
 import { FtpConnection } from "./storage";
 
 const app = express();
 app.use(morgan("combined"));
 app.use(fileupload());
+
 
 const mapsConfig: MapConfig[] = [
   {
@@ -141,13 +142,7 @@ async function ioInit() {
   //await ftpStorage.connect();
   ftpStorage.setRootPath("pml30map.rf.gd/htdocs/storage/");
 
-  // REAL TMP SHIT BELOW - ftp tests, if I committed this shit, sorry
-
-  await ftpStorage.ensureDir('aaaaa');
-
-  // END OF REAL TMP SHIT
-
-  const config = JSON.parse((await ftpStorage.downloadFile(configFileName)).toString());
+  const config: Config = JSON.parse((await ftpStorage.downloadFile(configFileName)).toString());
 
   console.log('---------------');
   console.log(JSON.stringify(config));

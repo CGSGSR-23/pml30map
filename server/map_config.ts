@@ -28,3 +28,7 @@ export interface MapConfig {
   storageURL: string;
   minimapInfo: MinimapInfo;
 }
+
+export interface Config {
+  maps: MapConfig[];
+}

@@ -97,6 +97,11 @@ export class MapView {
     return URI.fromArray(await this.socket.send("getNeighboursReq", uri.id));
   }
 
+  async getNeighboursData( uri: URI): Promise<URI[]> {
+    return URI.fromArray(await this.socket.send("getNeighboursDataReq", uri.id));
+  }
+
+
   async getDefNodeURI(): Promise<URI> {
     return new URI(await this.socket.send("getDefNodeURIReq"));
   }
