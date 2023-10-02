@@ -45,15 +45,8 @@ class NeighbourArrow implements Unit {
     arrow.manager = manager;
     arrow.data = data;
 
-    let direction = (new Vec2(data.position.x - manager.origin.x, data.position.y - manager.origin.y)).angle();
-
-    arrow.transform = Mat4.identity()
-      .mul(Mat4.rotateY(Math.PI / 2))
-      .mul(Mat4.rotateZ(Math.PI / 2))
-      .mul(Mat4.scaleNum(0.5, 0.5, 0.5))
-      .mul(Mat4.translate(new Vec3(1.5, -0.5, 0)))
-      .mul(Mat4.rotateY(direction))
-      ;
+    let direction = data.position.xz().sub(manager.origin.xz()).angle();
+    arrow.transform = Mat4.rotateY(-direction);
 
     return arrow;
   } /* create */
@@ -76,7 +69,7 @@ class NeighbourArrowManager {
     let img = await system.createTextureFromURL("bin/imgs/arrow.png");
 
     mtl.addResource(img);
-    manager.model = system.createModelFromTopology(Topology.square(), mtl);
+    manager.model = system.createModelFromTopology(Topology.plane(2, 2).translatePosition(new Vec3(1.5, -0.5, -0.5)), mtl);
     manager.system = system;
 
     return manager;
@@ -97,6 +90,28 @@ class NeighbourArrowManager {
     this.neighbours = [];
   } /* clearNeighbours */
 }; /* NeighbourArrowManager */
+
+class MovementHandler implements Unit {
+  doSuicide: boolean;
+  unitType: string = "MovementHandler";
+
+  static create(system: System, viewer: Viewer): MovementHandler {
+    let handler = new MovementHandler();
+
+    system.canvas.addEventListener("mousedown", (event: MouseEvent) => {
+      let unit = system.getScreenUnit(event.clientX, event.clientY);
+
+      if (unit !== null && unit.unitType === "NeighbourArrow")
+        viewer.goToNode(viewer.state.minimapRef.current, (unit as NeighbourArrow).data.uri);
+    });
+
+    return handler;
+  } /* create */
+
+  response(system: System): void {
+
+  } /* response */
+} /* MovementHandler */
 
 export class Viewer extends React.Component<ViewerProps, ViewerState> implements Unit {
   curQuery: QueryData = {};
@@ -238,6 +253,9 @@ export class Viewer extends React.Component<ViewerProps, ViewerState> implements
 
     this.neighbourManager = await NeighbourArrowManager.create(this.system);
     
+    // Add movement handler fot this node
+    await this.system.createUnit(MovementHandler.create, this);
+
     this.system.runMainLoop();
 
     window.addEventListener("resize", () => {

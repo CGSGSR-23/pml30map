@@ -27,7 +27,7 @@ void main() {
     azimuth = acos(direction.y),
     elevation = sign(direction.z) * acos(direction.x / length(direction.xz));
   vec2 fetchCoord = vec2(
-    elevation / (PI * 2.0) + 0.5,
+    elevation / (PI * 2.0) - 0.25,
     azimuth / PI
   );
 

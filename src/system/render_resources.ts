@@ -203,8 +203,8 @@ export class Texture implements ShaderBindable {
 
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
 
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
 
@@ -412,18 +412,56 @@ class RenderTarget implements Target {
 
     return result;
   } /* create */
-
+  
+  /**
+   * Shader attachment value getting fucntion
+   * @param attachmentIndex Index of attachment to get value from
+   * @param x X screen coordinate
+   * @param y Y screen coordinate
+   * @returns 4-component vector with contents
+   */
   getAttachmentValue(attachmentIndex: number, x: number, y: number): Vec4 {
+    const convertFloat16ToFloat32 = (dv: DataView, offset: number) => {
+      let asInt32 = dv.getInt32(offset, false);
+      let rest = asInt32 & 0x7FFF;
+      let sign = asInt32 & 0x8000;
+  
+      let exponent = asInt32 & 0x7C00;
+  
+      rest <<= 13;
+      sign <<= 16;
+  
+      rest += 0x38000000;
+      rest = (exponent === 0 ? 0 : rest);
+      rest |= sign;
+  
+      dv.setInt32(offset, rest, false);
+    };
     let gl = this.gl;
+    let dst = new Uint16Array(16);
 
-    let dst = new Float32Array(4);
-
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
-    if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) == gl.FRAMEBUFFER_COMPLETE) {
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.framebuffer);
+    if (gl.checkFramebufferStatus(gl.READ_FRAMEBUFFER) == gl.FRAMEBUFFER_COMPLETE) {
+      gl.readBuffer(gl.COLOR_ATTACHMENT0 + attachmentIndex);
       gl.readPixels(x, this.attachments[attachmentIndex].height - y, 1, 1, gl.RGBA, gl.HALF_FLOAT, dst);
     }
 
-    return new Vec4(dst[0], dst[1], dst[2], dst[3]);
+    let ab = new ArrayBuffer(16);
+    let dv = new DataView(ab);
+
+    dv.setUint16( 2, dst[0]);
+    dv.setUint16( 6, dst[1]);
+    dv.setUint16(10, dst[2]);
+    dv.setUint16(14, dst[3]);
+
+    convertFloat16ToFloat32(dv,  0);
+    convertFloat16ToFloat32(dv,  4);
+    convertFloat16ToFloat32(dv,  8);
+    convertFloat16ToFloat32(dv, 12);
+
+    let output = new Vec4(dv.getFloat32(0), dv.getFloat32(4), dv.getFloat32(8), dv.getFloat32(12));
+    console.log(output.x, output.y, output.z, output.w);
+    return output;
   } /* getAttachmentValue */
 
   /**
@@ -833,6 +871,17 @@ export class Topology {
 
     return result;
   } /* toArray */
+
+  /**
+   * Position translation function
+   * @param location offset
+   */
+  translatePosition(location: Vec3): Topology {
+    for (let vt of this.vtx)
+      vt.position = vt.position.add(location);
+
+    return this;
+  } /* transform */
 } /* Topology */
 
 export interface Model {

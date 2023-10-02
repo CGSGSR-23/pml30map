@@ -8,9 +8,12 @@ in vec2 drawTexCoord;
 
 // ColorID texture
 uniform sampler2D Tex1;
+uniform sampler2D Tex2;
 
 void main() {
-  outColor = vec4(texture(Tex1, drawTexCoord).xyz, 1.0);
+  vec3 color = texture(Tex1, drawTexCoord).xyz;
+
+  outColor = vec4(color, 1.0);
 } /* main */
 
 /* target.frag */

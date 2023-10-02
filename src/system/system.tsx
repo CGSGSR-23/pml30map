@@ -249,7 +249,8 @@ export class System {
   } /* getUnitAndPosition */
 
   getScreenUnit(x: number, y: number): Unit | null {
-    let unitIndex = this.target.getAttachmentValue(1, x, y).x;
+    let unitIndex = this.target.getAttachmentValue(1, x, y).w;
+    console.log(unitIndex);
     if (unitIndex >= 0 && unitIndex < this.units.length)
       return this.units[unitIndex];
     return null;
