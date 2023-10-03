@@ -96,7 +96,10 @@ export class FtpConnection {
 
   protected async cdUnsafe( path: string ) {
     if (this.curPath == path)
+    {
+      //console.log('PPPPPPPPPPPPPPPPPPPPPPPPPAAAAAAAAAAAAAAAAAATTTTTTTTTTTTTTTH: ' + this.curPath + '!=' + path);
       return;
+    }
 
     const res = await this.client.cd('/' + path);
     this.curPath = path;
@@ -132,6 +135,7 @@ export class FtpConnection {
         const res = await this.ensureDirUnsafe(path);
       } catch (error) {
         console.log("FTP ensure dir ERROR -- " + error);
+        console.log('Cur path: ' + this.curPath);
       }
     });
   }
@@ -150,6 +154,7 @@ export class FtpConnection {
         res = (await this.client.uploadFrom(getReadStream(new Uint8Array(fileData)), dest)).code;
       } catch (error) {
         console.log("FTP upload file ERROR -- " + error);
+        console.log('Cur path: ' + this.curPath);
       }
       return res;
     });

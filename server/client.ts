@@ -126,26 +126,26 @@ export class Client {
 
     this.socket.on("getNeighboursDataReq", async ( uri, res )=>{
       const nodesURI = await this.db.getNeighbours(uri);
-      const nodesData = nodesURI.map((i)=>{ this.db.getNode(i)});
+      const nodesData = nodesURI.map((i)=>{ this.db.getNode(i) });
       LogMsg("getNeighboursDataReq", uri, nodesData);
       res(nodesData);
     });
 
     this.socket.on("getAllNodesReq", async ( res )=>{
       let outData = await this.db.getAllNodeURIs();
-      LogMsg("getAllNodesReq", "", outData);
+      LogMsg("getAllNodesReq", "", 'length = ' + outData.length);
       res(outData);
     });
 
     this.socket.on("getAllNodesDataReq", async ( res )=>{
       let outData = await this.db.getAllNodesData();
-      LogMsg("getAllNodesDataReq", "", outData);
+      LogMsg("getAllNodesDataReq", "", 'length = ' + outData.length);
       res(outData);
     });
 
     this.socket.on("getAllConnectionsReq", async ( res )=>{
       let cs = await this.db.getAllConnections();
-      LogMsg("getAllConnectionsReq", "", cs);
+      LogMsg("getAllConnectionsReq", "", 'length = ' + cs.length);
       res(cs);
     });
 
@@ -165,7 +165,7 @@ export class Client {
   } /* End of 'setupNodeRequests' function */
 
   setupProjectEditorRequests() {
-    this.socket.on("createProject", ( name: string, res )=>{
+    this.socket.on("createProjectReq", ( name: string, res )=>{
       var alreadyExist = false;
 
       for (let mi in this.mapsConfig.maps)
@@ -175,7 +175,11 @@ export class Client {
         }
       
       if (alreadyExist)
+      {
+        LogMsg("createProjectReq", name, false);
         res(false);
+        return;
+      }
 
       this.mapsConfig.maps = [...this.mapsConfig.maps, {
         name: name,
@@ -194,6 +198,24 @@ export class Client {
         storageURL: "dont use",
       } as MapConfig];
       this.saveConfigCallBack();
+      this.mongodb.addDB(name);
+      LogMsg("createProjectReq", name, true);
+      res(true);
+    });
+
+    this.socket.on("deleteProjectReq", ( name: string, res )=>{
+      for (let mi = 0; mi < this.mapsConfig.maps.length; mi++)
+        if (this.mapsConfig.maps[mi].name == name) {
+          this.mapsConfig.maps.splice(mi, 1);
+
+          this.saveConfigCallBack();
+          LogMsg("deleteProjectReq", name, true);
+          res(true);
+          return;
+        }
+      
+      LogMsg("deleteProjectReq", name, false);
+      res(false);
     });
 
   } /* End of 'setupProjectEditorRequests' function */
@@ -446,6 +468,7 @@ export class Client {
 
     this.setupNodeRequests();
     this.setupMinimapEditorRequests();
+    this.setupProjectEditorRequests();
   } /* End of 'contsructor' function */
 
 } /* End of 'client' class */
