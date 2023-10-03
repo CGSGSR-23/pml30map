@@ -9,8 +9,8 @@ import { System, Unit } from "../system/system";
 import { MapView } from "../map_view";
 import { Skysphere } from "../units/skysphere";
 import * as CameraController from '../units/camera_controller';
-import { MongoInvalidArgumentError } from "mongodb";
 import { UniformBuffer, Model, Topology } from "../system/render_resources";
+import { keys } from "../../rollup.config";
 
 interface ViewerProps {
   accessLevel: number;
@@ -31,10 +31,11 @@ interface QueryData {
 }
 
 class NeighbourArrow implements Unit {
+  private transformUp: Mat4;
+  private transformDown: Mat4;
   data: NodeData;
   manager: NeighbourArrowManager;
-  uniformBuffer: UniformBuffer;
-  transform: Mat4;
+  direction: Vec2;
 
   doSuicide: boolean;
   unitType: string = "NeighbourArrow";
@@ -45,14 +46,22 @@ class NeighbourArrow implements Unit {
     arrow.manager = manager;
     arrow.data = data;
 
-    let direction = data.position.xz().sub(manager.origin.xz()).angle();
-    arrow.transform = Mat4.rotateY(-direction);
+    arrow.direction = data.position.xz().sub(manager.origin.xz()).normalize();
+    let transform = Mat4.identity()
+      .mul(Mat4.translate(new Vec3(1.5, -1.47, -0.5)))
+      .mul(Mat4.rotateY(-arrow.direction.angle()))
+      .mul(Mat4.translate(new Vec3(1, 0, 0)))
+      ;
+
+    arrow.transformUp = Mat4.translate(new Vec3(0, 0.02, 0)).mul(transform);
+    arrow.transformDown = Mat4.translate(new Vec3(0, -0.02, 0)).mul(transform);
 
     return arrow;
   } /* create */
 
   response(system: System): void {
-    system.drawModel(this.manager.model, this.transform);
+    system.drawModel(this.manager.model, this.transformUp);
+    system.drawModel(this.manager.model, this.transformDown);
   } /* response */
 }; /* NeighbourArrow */
 
@@ -69,7 +78,7 @@ class NeighbourArrowManager {
     let img = await system.createTextureFromURL("bin/imgs/arrow.png");
 
     mtl.addResource(img);
-    manager.model = system.createModelFromTopology(Topology.plane(2, 2).translatePosition(new Vec3(1.5, -0.5, -0.5)), mtl);
+    manager.model = system.createModelFromTopology(Topology.plane(2, 2), mtl);
     manager.system = system;
 
     return manager;
@@ -103,6 +112,32 @@ class MovementHandler implements Unit {
 
       if (unit !== null && unit.unitType === "NeighbourArrow")
         viewer.goToNode(viewer.state.minimapRef.current, (unit as NeighbourArrow).data.uri);
+    });
+
+    document.addEventListener("keydown", (event: KeyboardEvent) => {
+      let direction = system.camera.dir.xz();
+
+      switch (event.key) {
+        case "ArrowUp"    :                                break;
+        case "ArrowDown"  : direction = direction.neg();   break;
+        case "ArrowRight" : direction = direction.right(); break;
+        case "ArrowLeft"  : direction = direction.neg();   break;
+        default           :                                return;
+      }
+
+      let maxDot = -2.0;
+      let maxDotArrow: NeighbourArrow | null = null;
+      for (let arrow of viewer.neighbourManager.neighbours) {
+        let dot = arrow.direction.dot(direction);
+        if (dot >= maxDot) {
+          maxDot = dot;
+          maxDotArrow = arrow;
+        }
+      }
+
+      if (maxDotArrow !== null) {
+        console.log(maxDot);
+      }
     });
 
     return handler;
@@ -164,22 +199,25 @@ export class Viewer extends React.Component<ViewerProps, ViewerState> implements
     // Canvas part
     
     // Minimap part
-    console.log(uri.toStr());
     const node = await this.props.socket.getNode(uri);
-    console.log(node);
-    this.sky.skyTexturePath= "";
     const pos = minimap.toMap(node.position);
-    console.log('Go to ' + uri.toStr());
     minimap.setAvatar(pos, node.floor);
 
-    this.sky.skyTexturePath = this.props.socket.getStoragePath(`imgs/panorama/${node.skysphere.path}`);
     // Get new neighbours
-
+    
     let neighbourNodes = await this.props.socket.getNeighbours(uri);
-    this.neighbourManager.clearNeighbours();
     this.neighbourManager.origin = Vec3.fromObject(node.position);
+    let neighbours: NodeData[] = [];
+    
     for (let neighbour of neighbourNodes) {
-      this.neighbourManager.addNeighbour(await this.props.socket.getNode(neighbour));
+      neighbours.push(await this.props.socket.getNode(neighbour));
+    }
+    await this.sky.loadSkyTexture(this.props.socket.getStoragePath(`imgs/panorama/${node.skysphere.path}`));
+
+    // replace neighbours with new ones
+    this.neighbourManager.clearNeighbours();
+    for (let neighbour of neighbours) {
+      this.neighbourManager.addNeighbour(neighbour);
     }
 
     this.curQuery.node_uri = uri.toStr();

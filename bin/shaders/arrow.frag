@@ -17,8 +17,16 @@ uniform cameraBuffer {
   mat4 transformWorld;
 };
 
+uniform sampler2D Tex1;
+
 void main() {
-  outColor = vec4(drawTexCoord.xy, 0, 1);
+  float texValue = texture(Tex1, drawTexCoord.yx * vec2(1, -1)).x;
+
+  if (texValue <= 0.4)
+    discard;
+
+  float color = sign(drawPosition.y + 1.47);
+  outColor = vec4(color, color, color, 1);
   outPositionID = vec4(drawPosition, currentID);
 } /* main */
 

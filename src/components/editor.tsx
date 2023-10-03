@@ -330,10 +330,6 @@ export class Editor extends React.Component<EditorProps, EditorState> implements
     this.curQuery = this.getQuery();
   } /* End of 'cosntructor' function */
 
-  async goToNode( uri: URI ) {
-
-  } /* goToNode */
-
   render() {
     return (
       <>

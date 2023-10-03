@@ -66,8 +66,9 @@ export class FixedArcball implements Unit {
   unitType: string = "FixedArcballCameraController";
   doSuicide: boolean;
   system: System;
-  minProjSize = 0.1;
-  maxProjSize = 2.0;
+  distance: number = 3.0;
+  minProjSize: number = 0.1;
+  maxProjSize: number = 2.0;
 
   static create(system: System): FixedArcball {
     let camera = new FixedArcball();
@@ -81,16 +82,16 @@ export class FixedArcball implements Unit {
         mdx = event.movementX / 200.0,
         mdy = event.movementY / 200.0;
 
-      if ((event.buttons & 1) == 1) {
-        let spherical = system.camera.dir.toSpherical();
-
-        spherical.radius = 1.0;
-        spherical.elevation = spherical.elevation - mdx;
-        spherical.azimuth = Math.min(Math.max(spherical.azimuth - mdy, 0.01), Math.PI - 0.01);
-
-        system.camera.set(system.camera.loc, system.camera.loc.add(spherical.toVec3()));
-      }
-    });
+        if ((event.buttons & 1) == 1) {
+          let spherical = system.camera.loc.sub(system.camera.at).toSpherical();
+  
+          spherical.elevation = spherical.elevation - mdx;
+          spherical.azimuth = Math.min(Math.max(spherical.azimuth + mdy, 0.01), Math.PI - 0.01);
+          spherical.radius = camera.distance;
+  
+          system.camera.set(system.camera.at.add(spherical.toVec3()), system.camera.at);
+        }
+      });
 
     system.canvas.addEventListener('wheel', (event: WheelEvent) => {
       let mdw = event.deltaY / 100.0;

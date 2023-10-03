@@ -38,11 +38,15 @@ export class Skysphere implements Unit {
 
   private _skyTexturePath: string;
 
-  set skyTexturePath(path: string) {
+  async loadSkyTexture(path: string) {
     if (path !== this._skyTexturePath) {
-      this.skyTexture.load(path);
+      await this.skyTexture.load(path);
       this._skyTexturePath = path;
     }
+  } /* loadSkyTexture */
+
+  set skyTexturePath(path: string) {
+    this.loadSkyTexture(path);
   } /* skyTexturePath */
 
   get skyTexturePath(): string {

@@ -715,9 +715,10 @@ export class Topology {
 
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
+        let tx = x / (width - 1), ty = y / (height - 1);
         tpl.vtx[y * width + x] = Vertex.fromCoord(
-          x, 0, y,
-          x / (width - 1), y / (height - 1),
+          tx, 0, ty,
+          tx, ty,
           0, 1, 0
         );
       }
@@ -880,8 +881,11 @@ export class Topology {
    * @param location offset
    */
   translatePosition(location: Vec3): Topology {
-    for (let vt of this.vtx)
-      vt.position = vt.position.add(location);
+    for (let vt of this.vtx) {
+      vt.position.x += location.x;
+      vt.position.y += location.y;
+      vt.position.z += location.z;
+    }
 
     return this;
   } /* transform */
