@@ -172,8 +172,7 @@ export class Viewer extends React.Component<ViewerProps, ViewerState> implements
     console.log('Go to ' + uri.toStr());
     minimap.setAvatar(pos, node.floor);
 
-    let image = await this.props.socket.loadImg("imgs/panorama/" + node.skysphere.path);
-    this.sky.setImage(image);
+    this.sky.skyTexturePath = this.props.socket.getStoragePath(`imgs/panorama/${node.skysphere.path}`);
     // Get new neighbours
 
     let neighbourNodes = await this.props.socket.getNeighbours(uri);

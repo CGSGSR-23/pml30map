@@ -19,7 +19,7 @@ export class BaseConstruction implements Unit {
   lightingDirection: LinMath.Vec3;
 
   constructor() {
-    // super({});
+    
   } /* constructor */
 
   static async create(system: System, modelPath: string): Promise<BaseConstruction> {

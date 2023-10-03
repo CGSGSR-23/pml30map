@@ -413,12 +413,11 @@ export class Editor extends React.Component<EditorProps, EditorState> implements
     this.system.resize(this.state.canvasRef.current.clientWidth, this.state.canvasRef.current.clientHeight);
 
     this.skysphere = await this.system.createUnit(Skysphere.create, "bin/imgs/default.png") as Skysphere;
-    this.baseConstruction = await this.system.createUnit(BaseConstruction.create, "bin/models/pml30map.obj") as BaseConstruction;
+    this.baseConstruction = await this.system.createUnit(BaseConstruction.create, this.props.socket.getStoragePath("models/map.obj")) as BaseConstruction;
     this.graph = await this.system.createUnit(GraphManager.create) as GraphManager;
     this.system.createUnit(CameraController.Arcball.create);
 
     this.system.addUnit(this);
-
     this.system.runMainLoop();
 
     // Get context
@@ -473,7 +472,7 @@ export class Editor extends React.Component<EditorProps, EditorState> implements
       </>)
     });
 
-    // Add nodes
+    // Order guaranted
     let nodeURIs = await this.props.socket.getAllNodes();
     let nodeDatas = await this.props.socket.getAllNodesData();
 

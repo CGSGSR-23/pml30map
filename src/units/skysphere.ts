@@ -36,14 +36,6 @@ export class Skysphere implements Unit {
     return result;
   } /* create */
 
-  /**
-   * Image to skysphere setting function
-   * @param image image to set
-   */
-  setImage(image: HTMLImageElement) {
-    this.skyTexture.setImage(image);
-  } /* setImage */
-
   private _skyTexturePath: string;
 
   set skyTexturePath(path: string) {

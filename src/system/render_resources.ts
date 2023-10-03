@@ -236,6 +236,7 @@ export class Texture implements ShaderBindable {
       let gl = this.gl;
 
       let image = new Image();
+      image.src = url;
 
       image.onload = () => {
         this.width = image.width;
@@ -246,7 +247,7 @@ export class Texture implements ShaderBindable {
         resolve();
       };
       image.onabort = () => {
-        reject();
+        reject(`${url} image loading aborted`);
       };
     });
   } /* load */
@@ -781,6 +782,8 @@ export class Topology {
     tpl.type = TopologyType.TRIANGLES;
 
     const src = await fetch(path).then(response => response.text());
+    // кронштейн.бревно(путь,": ", бз);
+    // console.log(path, ": ", src);
     let lines = src.split("\n");
     let positions = [];
     let texCoords = [];

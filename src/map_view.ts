@@ -27,12 +27,15 @@ export class MapView {
     await this.updateConfig();
   }
 
+  getStoragePath( path: string ): string {
+    return "download?file=" + "maps/" + this.mapConfig.name + "/" + path;
+  }
+
   async loadImg( fileName: string ): Promise<HTMLImageElement> {
     console.log("1");
     
     var img = new Image();
-    //console.log(this.mapConfig.storageURL + fileName);
-    img.src = "download?file=" + "maps/" + this.mapConfig.name + "/" + fileName;
+    img.src = this.getStoragePath(fileName);
     return new Promise( async (resolve) => {
       img.onload = ()=>{
         console.log("SDFJSDFLK");
@@ -45,8 +48,7 @@ export class MapView {
   }
 
   async loadRes( fileName: string ) {
-    console.log(this.mapConfig.storageURL + fileName);
-    return fetch(this.mapConfig.storageURL + fileName);
+    return fetch(this.getStoragePath(fileName));
   }
 
   async updateConfig(): Promise<void> {
