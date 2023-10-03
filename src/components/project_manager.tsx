@@ -16,7 +16,11 @@ export interface ProjectManagerProps {
 }
 
 export interface ProjectManagerState {
-  config: Config,
+  config: Config;
+  inputRef: React.MutableRefObject<any>;
+  showCreateProjectBox: boolean;
+  showDeleteSureBox: boolean;
+  deleteProjectName: string;
 }
 
 export class ProjectManager extends React.Component<ProjectManagerProps, ProjectManagerState> {
@@ -24,6 +28,10 @@ export class ProjectManager extends React.Component<ProjectManagerProps, Project
     super(props);
     this.state = {
       config: undefined,
+      inputRef: React.createRef(),
+      showCreateProjectBox: false,
+      showDeleteSureBox: false,
+      deleteProjectName: "",
     };
   } 
   
@@ -56,17 +64,76 @@ export class ProjectManager extends React.Component<ProjectManagerProps, Project
                 <input type="button" value="open" onClick={()=>{
                   this.props.goToMapCallBack(m.name);
                 }}/>
+                <input type="button" value="delete" onClick={()=>{
+                  this.setState({ showDeleteSureBox: true, deleteProjectName: m.name });
+                }}/>
               </div>);
             })}
           </>}
         </div>
         <div>
           <h3>Other options (temp shit):</h3>
-          <input type="button" value="Create new Project" onClick={()=>{
-            console.log('Create new project...');
+          <input type="button" value="Create new Project" onClick={async ()=>{
+            this.setState({ showCreateProjectBox: true });
           }}/>
-          <input type="text" placeholder="project name"/>
         </div>
+        {this.state.showCreateProjectBox &&
+          <div style={{
+            zIndex: 5,
+            position: 'absolute',
+            backgroundColor: 'var(--shadow2-color)',  
+            
+            right: 0,
+            top: 0,
+            left: 0,
+            bottom: 0,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
+            <div className="box flexRow">
+              Floor index: <input ref={this.state.inputRef} type="number"/><input type="button" value="Add" onClick={async ()=>{
+                const res = await this.props.socket.socket.send('createProjectReq', parseInt(this.state.inputRef.current.value));
+                
+                if (!res)
+                  this.props.logListRef.log({ str: "Such floor already exist", type: MessageType.error });
+                else
+                {
+                  await this.props.socket.updateConfig();
+                  this.setState({ showCreateProjectBox: false });  
+                }
+              }}/>
+            </div>
+          </div>
+        }
+        {this.state.showDeleteSureBox &&
+          <div style={{
+            zIndex: 5,
+            position: 'absolute',
+            backgroundColor: 'var(--shadow2-color)',  
+            
+            right: 0,
+            top: 0,
+            left: 0,
+            bottom: 0,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
+            <div className="box flexRow">
+              Are you sure you want to delete project: <div>
+                <input type="button" value="Delete" onClick={async ()=>{
+                  await this.props.socket.socket.send('deleteProjectReq', this.state.deleteProjectName);
+                  await this.updateConfig();
+                  this.setState({ showDeleteSureBox: false, deleteProjectName: '' });
+                }}/>
+                <input type="button" value="Cancel" onClick={()=>{
+                  this.setState({ showDeleteSureBox: false, deleteProjectName: '' });
+                }}/>
+              </div>
+            </div>
+          </div>
+        }
       </div>
     );
   }

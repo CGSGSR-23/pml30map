@@ -193,8 +193,7 @@ export class MongoDB { // Nodes data base
   mongodbConnection;
 
   async init( mongodbURL: string, dbNames: string[] ) {
-    const mongodbClient = new MongoClient(mongodbURL);
-    this.mongodbConnection = await mongodbClient.connect();
+    this.mongodbConnection = await MongoClient.connect(mongodbURL);
     var dbs = [];
 
     await Promise.all(dbNames.map(async ( name: string )=>{
@@ -209,5 +208,17 @@ export class MongoDB { // Nodes data base
     dbs.map((e)=>{
       this.dbs = {...this.dbs, ...e};
     });
+  }
+
+  async addDB( name: string ) {
+    if (this.dbs[name] == undefined)
+      return;
+    const db = new Database();
+    await db.init(await this.mongodbConnection.db(name));
+
+    this.dbs = {
+      ...this.dbs,
+      [name]: db
+    };
   }
 }

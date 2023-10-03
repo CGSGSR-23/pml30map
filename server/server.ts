@@ -138,8 +138,6 @@ async function ioInit() {
   const configFileName = 'config.json';
   const ftpStorage = new FtpConnection("ftpupload.net", "if0_35095022", "e9cdJZmBzH");
 
-  await DB.init("mongodb+srv://doadmin:i04J9b2t1X853Cuy@db-mongodb-pml30-75e49c39.mongo.ondigitalocean.com/admin?tls=true&authSource=admin", mapsConfig.map((e)=>{ return e.dbName; }));
-  //await ftpStorage.connect();
   ftpStorage.setRootPath("pml30map.rf.gd/htdocs/storage/");
 
   const config: Config = JSON.parse((await ftpStorage.downloadFile(configFileName)).toString());
@@ -155,6 +153,10 @@ async function ioInit() {
 
     await ftpStorage.uploadFile(Buffer.from(cStr), "", configFileName);
   };
+  
+  await DB.init("mongodb+srv://doadmin:i04J9b2t1X853Cuy@db-mongodb-pml30-75e49c39.mongo.ondigitalocean.com/admin?tls=true&authSource=admin", config.maps.map((e)=>{ return e.dbName; }));
+  // await ftpStorage.connect();
+
   
   // For test
   io.on("connection", async (socket) => {
@@ -185,6 +187,16 @@ async function ioInit() {
 
   app.get("/download", async ( req, res )=>{
     res.send(await ftpStorage.downloadFile((req.query.file as string).split('?')[0]));
+  });
+
+  app.use((req, res, next) => {
+    console.log('CORS ====== ' + req.url);
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.header(
+      "Access-Control-Allow-Headers",
+      "Origin, X-Requested-With, Content-Type, Accept"
+    );
+    next();
   });
 
   app.use('/bin', express.static("../bin"));
