@@ -25,7 +25,7 @@ void main() {
   if (texValue <= 0.4)
     discard;
 
-  float color = sign(drawPosition.y + 1.47);
+  float color = sign(drawPosition.y);
   outColor = vec4(color, color, color, 1);
   outPositionID = vec4(drawPosition, currentID);
 } /* main */

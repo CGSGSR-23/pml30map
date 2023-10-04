@@ -63,17 +63,20 @@ export class Arcball implements Unit {
  * Fixed arcball camera
  */
 export class FixedArcball implements Unit {
+  private system: System;
   unitType: string = "FixedArcballCameraController";
   doSuicide: boolean;
-  system: System;
   distance: number = 3.0;
-  minProjSize: number = 0.1;
+  minProjSize: number = 0.5;
   maxProjSize: number = 2.0;
+
+  azimuthLock: number = Math.PI * 0.2;
 
   static create(system: System): FixedArcball {
     let camera = new FixedArcball();
 
     camera.system = system;
+    system.camera.projSet(system.camera.near, system.camera.far, new Size(camera.maxProjSize, camera.maxProjSize));
     system.canvas.addEventListener('mousemove', (event: MouseEvent) => {
       if (event.altKey || event.shiftKey)
         return;
@@ -86,10 +89,10 @@ export class FixedArcball implements Unit {
           let spherical = system.camera.loc.sub(system.camera.at).toSpherical();
   
           spherical.elevation = spherical.elevation - mdx;
-          spherical.azimuth = Math.min(Math.max(spherical.azimuth + mdy, 0.01), Math.PI - 0.01);
+          spherical.azimuth = Math.min(Math.max(spherical.azimuth + mdy, camera.azimuthLock), Math.PI - 0.01);
           spherical.radius = camera.distance;
-  
-          system.camera.set(system.camera.at.add(spherical.toVec3()), system.camera.at);
+
+          system.camera.set(system.camera.at.add(spherical.toVec3()), new Vec3(0, 3, 0));
         }
       });
 

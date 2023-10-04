@@ -43,16 +43,24 @@ export class Timer {
    * Current time getting function
    * @returns Current time in Seconds
    */
-  static getCurrentTime(): number {
-    return Date.now() / 10e3;
+  private static getGlobalTime(): number {
+    return Date.now() / 1000.0;
+  } /* getCurrentTime */
+
+  /**
+   * Current time getting function (no response-controlled time getting function)
+   * @returns Time right now
+   */
+  getCurrentTime(): number {
+    return Timer.getGlobalTime() - this.initialTime;
   } /* getCurrentTime */
 
   /**
    * Timer constructor
    */
   constructor() {
-    this.time = Timer.getCurrentTime();
     this.initialTime = this.time;
+    this.time = 0;
     this.deltaTime = 0;
   } /* constructor */
 
@@ -60,10 +68,10 @@ export class Timer {
    * Timer response functions
    */
   response() {
-    let time = Timer.getCurrentTime();
+    let time = Timer.getGlobalTime() - this.initialTime;
 
     this.deltaTime = time - this.time;
-    this.time = time - this.initialTime;
+    this.time = time;
 
     this.fpsCounter++;
     if (this.time - this.fpsLastMeasureTime > this.fpsMeasureDuration) {

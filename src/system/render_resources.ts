@@ -342,6 +342,7 @@ export class UniformBuffer implements ShaderBindable {
   /**
    * Data to buffer writing function
    * @param data Data to write
+   * @param offset Offset 
    */
   writeSubData(data: BufferSource, offset: number) {
     this.gl.bindBuffer(this.gl.UNIFORM_BUFFER, this.id);

@@ -33,8 +33,8 @@ interface QueryData {
 class NeighbourArrow implements Unit {
   private transformUp: Mat4;
   private transformDown: Mat4;
+  private manager: NeighbourArrowManager;
   data: NodeData;
-  manager: NeighbourArrowManager;
   direction: Vec2;
 
   doSuicide: boolean;
@@ -47,11 +47,7 @@ class NeighbourArrow implements Unit {
     arrow.data = data;
 
     arrow.direction = data.position.xz().sub(manager.origin.xz()).normalize();
-    let transform = Mat4.identity()
-      .mul(Mat4.translate(new Vec3(1.5, -1.47, -0.5)))
-      .mul(Mat4.rotateY(-arrow.direction.angle()))
-      .mul(Mat4.translate(new Vec3(1, 0, 0)))
-      ;
+    let transform = Mat4.translate(new Vec3(1.5, 0.0, -0.5)).mul(Mat4.rotateY(-arrow.direction.angle()));
 
     arrow.transformUp = Mat4.translate(new Vec3(0, 0.02, 0)).mul(transform);
     arrow.transformDown = Mat4.translate(new Vec3(0, -0.02, 0)).mul(transform);
@@ -114,9 +110,10 @@ class MovementHandler implements Unit {
         viewer.goToNode(viewer.state.minimapRef.current, (unit as NeighbourArrow).data.uri);
     });
 
-    document.addEventListener("keydown", (event: KeyboardEvent) => {
-      let direction = system.camera.dir.xz();
-
+    // Go to node by arrow click
+    window.addEventListener("keydown", (event: KeyboardEvent) => {
+      let direction = system.camera.dir.xz().normalize();
+      
       switch (event.key) {
         case "ArrowUp"    :                                break;
         case "ArrowDown"  : direction = direction.neg();   break;
@@ -124,7 +121,7 @@ class MovementHandler implements Unit {
         case "ArrowLeft"  : direction = direction.neg();   break;
         default           :                                return;
       }
-
+      
       let maxDot = -2.0;
       let maxDotArrow: NeighbourArrow | null = null;
       for (let arrow of viewer.neighbourManager.neighbours) {
@@ -134,9 +131,9 @@ class MovementHandler implements Unit {
           maxDotArrow = arrow;
         }
       }
-
-      if (maxDotArrow !== null) {
-        console.log(maxDot);
+      
+      if (maxDotArrow !== null && maxDot >= 0.8) {
+        viewer.goToNode(viewer.state.minimapRef.current, maxDotArrow.data.uri);
       }
     });
 
@@ -212,7 +209,7 @@ export class Viewer extends React.Component<ViewerProps, ViewerState> implements
     for (let neighbour of neighbourNodes) {
       neighbours.push(await this.props.socket.getNode(neighbour));
     }
-    await this.sky.loadSkyTexture(this.props.socket.getStoragePath(`imgs/panorama/${node.skysphere.path}`));
+    await this.sky.translateSkyTexture(this.props.socket.getStoragePath(`imgs/panorama/${node.skysphere.path}`));
 
     // replace neighbours with new ones
     this.neighbourManager.clearNeighbours();
