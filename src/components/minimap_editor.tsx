@@ -4,13 +4,14 @@ import { FloorInfo } from "../../server/map_config";
 import { Vec2 } from "../system/linmath";
 import { uploadFile } from "./upload";
 import { MapEdit } from "../map_edit";
-import { InputFile, LogList, MessageType } from "./support";
+import { InputFile } from "./support";
+import { Overlay, MessageType } from "./overlay";
 
 import { MinimapEditReqType, MinimapPosType } from "../../server/client";
 export interface MinimapEditorProps {
   socket: MapEdit;
   closeCallBack: ()=>void;
-  logListRef: LogList;
+  logListRef: Overlay;
 }
 
 export interface MinimapEditorState {

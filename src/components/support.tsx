@@ -89,78 +89,73 @@ export class InputFile extends React.Component<{ value: string, onLoadCallBack?:
 
 }
 
-export enum MessageType {
-  log = 'log',
-  success = 'success',
-  warning = 'warning',
-  error = 'error',
+export enum ButtonValueType {
+  ValueName = 'ValueName',
+  EnabledDisabled = 'EnabledDisabled',
+  ActivePassive = 'ActivePassive',
+  OnOff = 'OnOff',
 }
 
-export interface Message {
-  type: MessageType,
-  str: string,
+interface PushButtonProps {
+  name: string,
+  value?: boolean,
+  onChange?: ( newValue: boolean)=>void,
+  valueType?: ButtonValueType,
 }
 
-interface LogListState {
-  massageStack: Array<Message>;
+interface PushButtonState {
+  value,
 }
 
-export class LogList extends React.Component<{}, LogListState> {
-  messageLifeTime = 5000;
-
-  constructor( props: { value: string, onLoadCallBack?: ()=>void } ) {
+export class PushButton extends React.Component<PushButtonProps, PushButtonState> {
+  constructor( props: PushButtonProps ) {
     super(props);
+
     this.state = {
-      massageStack: [],
+      value: props.value != undefined ? props.value : false,
     };
   }
 
+  getValue(): boolean {
+    return this.state.value;
+  }
+
+  setValue( newValue: boolean ): void {
+    this.setState({ value: newValue });
+  }
+
+  getButtonValue() {
+    if (this.props.valueType == undefined)
+      return this.props.name;
+
+    switch (this.props.valueType) {
+      case ButtonValueType.ValueName:
+        return this.props.name;
+      case ButtonValueType.ActivePassive:
+        if (this.state.value)
+          return 'Active';
+        else
+          return 'Passive';
+      case ButtonValueType.EnabledDisabled:
+        if (this.state.value)
+          return 'Enable';
+        else
+          return 'Disable';
+      case ButtonValueType.OnOff:
+        if (this.state.value)
+          return 'On';
+        else
+          return 'Off';
+    }
+  }
+
   render() {
-    return (<div style={{
-      zIndex: 900,
-      position: 'absolute',
-      //right: 0,
-      //top: 0,
-      //left: 0,
-      //bottom: 0,
-      //display: 'flex',
-      //justifyContent: 'center',
-      alignItems: 'center',
-      bottom: 0,
-      left: 0,
-    }}>
-      {this.state.massageStack.map((e)=>{
-        var boxStyle = 'box';
-
-        switch (e.type) {
-          case MessageType.log:
-            break;
-          case MessageType.success:
-            boxStyle = 'boxSuccess';
-            break;
-          case MessageType.warning:
-            boxStyle = 'boxWarning';
-            break;
-          case MessageType.error:
-            boxStyle = 'boxError';
-            break;
-        }
-        return (<div className={`gapped ${boxStyle}`}>
-          <p>{e.str}</p>
-        </div>);
-      })}
-    </div>);
+    return (
+      <input type="button" className={`${this.state.value ? 'active' : ''}`} value={this.getButtonValue()} onClick={()=>{
+        if (this.props.onChange != undefined)
+          this.props.onChange(!this.state.value);
+        this.setState({ value: !this.state.value });
+      }}/>
+    );
   }
-
-  shift() {
-    this.state.massageStack.shift();
-    this.setState({ massageStack: this.state.massageStack});
-  }
-
-  log( m: Message ) {
-    this.state.massageStack.push(m);
-    this.setState({ massageStack: this.state.massageStack });
-    setTimeout(()=>{ this.shift(); }, this.messageLifeTime);
-  }
-
 }

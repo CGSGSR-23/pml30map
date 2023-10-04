@@ -1,8 +1,8 @@
 import React from "react";
 import { URI } from "../socket";
-import { queryToStr, LogList } from "./support";
+import { queryToStr } from "./support";
 import { MinimapEditor } from "./minimap_editor";
-
+import { Overlay } from "./overlay";
 import { System, Unit } from "../system/system";
 import { Topology, Material, Model, UniformBuffer } from "../system/render_resources";
 import { Skysphere } from "../units/skysphere";
@@ -261,7 +261,7 @@ interface EditorState {
   showNodeSettings: boolean;
   showMinimapSettings: boolean;
   showProjectManager: boolean;
-  logListRef: React.MutableRefObject<LogList>;
+  logListRef: React.MutableRefObject<Overlay>;
 }
 
 interface QueryData {
@@ -398,7 +398,7 @@ export class Editor extends React.Component<EditorProps, EditorState> implements
             location.reload();
           }}/>
         </div>}
-        <LogList ref={this.state.logListRef}/>
+        <Overlay ref={this.state.logListRef}/>
       </>
     );
   } /* End of 'render' function */
@@ -491,3 +491,4 @@ export class Editor extends React.Component<EditorProps, EditorState> implements
       this.graph.addConnection(connection);
   } /* componentDidMount */
 } /* End of 'Viewer' class */
+
