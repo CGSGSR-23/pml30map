@@ -23,7 +23,6 @@ class Node implements Unit {
   data: NodeData;
   uri: URI;
 
-
   static create(system: System, manager: GraphManager, data: NodeData): Node {
     let node = new Node();
 
@@ -91,10 +90,9 @@ class Connection implements Unit {
   } /* response */
 } /* Connection */
 
-class GraphManager implements Unit {
-  unitType: string = "ConnectionManager";
-  doSuicide: boolean;
 
+/* Manager of VISUAL PART OF graph */
+class GraphManager {
   private system: System;
   private nodes: Map<string, Node> = new Map<string, Node>();
   private connections: Map<string, Connection> = new Map<string, Connection>();
@@ -157,54 +155,141 @@ class GraphManager implements Unit {
 
     return false;
   } /* delConnection */
-
-  /**
-   * Unit response function
-   * @param system System this unit is responsed by
-   */
-  response(system: System): void {
-
-  } /* response */
 } /* ConnectionManager */
+
+class NodeSelector implements Unit {
+  private arrow: Model;
+  doSuicide: boolean;
+  unitType: string = "NodeSelector";
+  selectedNode: Node | null = null;
+
+  static async create(system: System, editor: Editor): Promise<NodeSelector> {
+    let selector = new NodeSelector();
+
+    let material = await system.createMaterial("bin/shaders/editor/selectedMark");
+    material.resources.push(await system.createTextureFromURL("bin/imgs/arrow.png"));
+    selector.arrow = system.createModelFromTopology(Topology.cone(0.5, 0.0), material);
+
+    system.canvas.addEventListener('click', (event: PointerEvent) => {
+      let unknownUnit = system.getScreenUnit(event.clientX, event.clientY);
+
+      if (unknownUnit === null || unknownUnit.unitType !== "Node")
+        return;
+
+      let node = unknownUnit as Node;
+
+      selector.selectedNode = node;
+
+      const onMakeDefault = () => {
+        editor.props.socket.setDefNodeURI(node.data.uri);
+        console.log(`new default node: ${node.data.name}`);
+      };
+
+      const onDelete = () => {
+        editor.graphManager.delNode(node);
+        editor.props.socket.delNode(node.data.uri);
+        console.log(`deleted \'${node.data.name}\' node`);
+      };
+
+      const onDataUpdate = (type: string, value: any) => {
+        if (type === 'Floor') {
+          console.log(`${value} floor selected`);
+          node.data.floor = value;
+        } else if (type === 'SkysphereName') {
+          console.log(`new skysphere name: ${value}`);
+          node.data.skysphere.path = value;
+        } else if (type === 'NodeName') {
+          console.log(`${node.data.name} node renamed to \'${value}\'`);
+          node.data.name = value;
+        } else {
+          console.error("unknown node data type");
+          return;
+        }
+
+        editor.props.socket.updateNode(node.uri, node.data);
+      };
+
+      editor.state.nodeSettingsRef.current.selectNode(node.data, onDataUpdate, onMakeDefault, onDelete);
+    });
+
+    return selector;
+  } /* create */
+
+  response(system: System): void {
+    if (this.selectedNode !== null) {
+      system.drawModel(this.arrow, LinMath.Mat4.translate(this.selectedNode.data.position.add(new LinMath.Vec3(0, 1 + Math.sin(system.timer.time) * 0.5, 0))));
+    }
+  } /* response */
+} /* NodeSelector */
 
 interface DisplayedNodeData {
   uri: URI,
   name: string,
   skysphere: {path: string, rotation: number},
   floor: number,
-};
+}
 
 interface NodeSettingsProps {
   data: DisplayedNodeData;
-  onMakeDefaultCallBack: ()=>void,
-  onDeleteNodeCallBack: ()=>void,
-  onSave: ( newData: DisplayedNodeData )=>void,
-  onClose: ()=>void,
 } /* NodeSettingsProps */
+
+type NodeSettingsUpdateCallback = (name: string, value: any) => void;
+type NodeSettingsMakeDefaultCallback = () => void;
+type NodeSettingsDeleteCallback = () => void;
 
 interface NodeSettingsState {
   nameRef: React.MutableRefObject<any>;
   skysphereRef: React.MutableRefObject<any>;
   floorRef: React.MutableRefObject<any>;
+
+  onValueUpdate: NodeSettingsUpdateCallback;
+  onMakeDefault: NodeSettingsMakeDefaultCallback;
+  onDelete: NodeSettingsDeleteCallback;
 } /* NodeSettingsState */
 
-
-
-
 class NodeSettings extends React.Component<NodeSettingsProps, NodeSettingsState> {
+  nodeNameChanged: boolean = false;
+  skysphereNameChanged: boolean = false;
+
   constructor( props: NodeSettingsProps ) {
     super(props);
     this.state = {
+      // Smth
       nameRef: React.createRef(),
       floorRef: React.createRef(),
       skysphereRef: React.createRef(),
-    };
+
+      // State functions
+      onValueUpdate: () => {},
+      onMakeDefault: () => {},
+      onDelete: () => {},
+   };
   } /* constructor */
+
+  /**
+   * Node selecting function
+   * @param data Node to select data
+   */
+  selectNode(data: NodeData,
+    valueUpdateCallback: NodeSettingsUpdateCallback,
+    makeDefaultCallback: NodeSettingsMakeDefaultCallback,
+    deleteCallback: NodeSettingsDeleteCallback
+  ): void {
+    this.state.floorRef.current.value = data.floor;
+    this.state.nameRef.current.value = data.name;
+    this.state.skysphereRef.current.value = data.skysphere.path;
+    this.setState({
+      onValueUpdate: valueUpdateCallback,
+      onMakeDefault: makeDefaultCallback,
+      onDelete: deleteCallback
+    });
+  } /* selectNode */
 
   render() {
     return (<>
       <div className="flexRow spaceBetween">
         <h2> Node settings</h2>
+        {/*
         <div>
           <input type="button" value="Save" onClick={()=>{
             this.props.onSave({
@@ -217,25 +302,47 @@ class NodeSettings extends React.Component<NodeSettingsProps, NodeSettingsState>
           }}/>
           <input type="button" value="Cancel" onClick={this.props.onClose}/>
         </div>
+      */}
       </div>
+
       <div className="flexRow spaceBetween">
         <p>URI:</p>
         <p>{this.props.data.uri.toStr()}</p>
       </div>
+
+      {/* Node name block */}
       <div className="flexRow spaceBetween">
         <p>Name:</p>
-        <input ref={this.state.nameRef} type="text" placeholder="Node name" />
+        <input ref={this.state.nameRef} type="text" placeholder="Node name" onChange={() => {this.nodeNameChanged = true}} onBlur={(event) => {
+          if (this.nodeNameChanged) {
+            this.state.onValueUpdate("NodeName", event.target.value);
+            this.nodeNameChanged = false;
+          }
+        }}/>
       </div>
+
+      {/* Skysphere name block */}
       <div className="flexRow spaceBetween">
         <p>Skysphere:</p>
-        <input ref={this.state.skysphereRef} type="text" placeholder="Skysphere name" />
+        <input ref={this.state.skysphereRef} type="text" placeholder="Skysphere name" onChange={() => {this.skysphereNameChanged = true}} onBlur={(event) => {
+          if (this.skysphereNameChanged) {
+            this.state.onValueUpdate("SkysphereName", event.target.value);
+            this.skysphereNameChanged = false;
+          }
+        }}/>
       </div>
+
+      {/* Floor block */}
       <div className="flexRow spaceBetween">
         <p>Floor:</p>
-        <input ref={this.state.floorRef} type="range" min={-1} max={4}/>
+        <input ref={this.state.floorRef} type="range" min={-1} max={4} onChange={(event) => {
+          this.state.onValueUpdate("Floor", event.target.value);
+        }}/>
       </div>
-      <input type="button" value="Make default" onClick={this.props.onMakeDefaultCallBack}/>
-      <input type="button" value="Delete node" onClick={this.props.onDeleteNodeCallBack}/>
+
+      {/* MakeDefault and Delete button block */}
+      <input type="button" value="Make default" onClick={() => {this.state.onMakeDefault();}}/>
+      <input type="button" value="Delete node" onClick={() => {this.state.onDelete()}}/>
     </>);
   }
 
@@ -272,16 +379,16 @@ interface QueryData {
  */
 export class Editor extends React.Component<EditorProps, EditorState> implements Unit {
   system: System = null;
-  graph: GraphManager;
+  graphManager: GraphManager;
   curQuery: QueryData = {};
-
+  nodeSelector: NodeSelector;
+  
   unitType: string = "EditorUnit";
   skysphere: Skysphere;
   baseConstruction: BaseConstruction;
   doSuicide: boolean;
 
   response(system: System): void {
-  
   } /* response */
 
   asyncSetState( newState: any ) {
@@ -346,8 +453,7 @@ export class Editor extends React.Component<EditorProps, EditorState> implements
           position: 'absolute',
           width: '22em',
         }}>
-          {this.state.showNodeSettings && <NodeSettings ref={this.state.nodeSettingsRef} data={{floor: 0, name: 'nodename', skysphere: {rotation: 0, path: 'nodsjysphere'}, uri: new URI('[0, 0, 0, 0, 0, 0, 0, 0]')}}
-          onDeleteNodeCallBack={()=>{}} onClose={()=>{}} onMakeDefaultCallBack={()=>{}} onSave={()=>{}}/>}
+          {this.state.showNodeSettings && <NodeSettings ref={this.state.nodeSettingsRef} data={{floor: 0, name: 'nodename', skysphere: {rotation: 0, path: 'nodsjysphere'}, uri: new URI('[0, 0, 0, 0, 0, 0, 0, 0]')}}/>}
         </div>
         <div className="box" style={{
           zIndex: 3,
@@ -408,10 +514,13 @@ export class Editor extends React.Component<EditorProps, EditorState> implements
 
     this.skysphere = await this.system.createUnit(Skysphere.create, "bin/imgs/default.png") as Skysphere;
     this.baseConstruction = await this.system.createUnit(BaseConstruction.create, this.props.socket.getStoragePath("models/map.obj")) as BaseConstruction;
-    this.graph = await this.system.createUnit(GraphManager.create) as GraphManager;
+
+    this.graphManager = await GraphManager.create(this.system);
+
+    this.nodeSelector = await this.system.createUnit(NodeSelector.create, this) as NodeSelector;
+
     this.system.createUnit(CameraController.Arcball.create);
 
-    this.system.addUnit(this);
     this.system.runMainLoop();
 
     // Get context
@@ -474,7 +583,7 @@ export class Editor extends React.Component<EditorProps, EditorState> implements
       let data = nodeDatas[i];
       let uri = nodeURIs[i];
 
-      this.graph.addNode({
+      this.graphManager.addNode({
         uri: uri,
         name: data.name,
         skysphere: data.skysphere,
@@ -486,7 +595,7 @@ export class Editor extends React.Component<EditorProps, EditorState> implements
     // Add connections
     let connections = await this.props.socket.getAllConnections();
     for (let connection of connections)
-      this.graph.addConnection(connection);
+      this.graphManager.addConnection(connection);
   } /* componentDidMount */
 } /* End of 'Viewer' class */
 

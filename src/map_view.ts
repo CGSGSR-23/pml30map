@@ -38,11 +38,11 @@ export class MapView {
     img.src = this.getStoragePath(fileName);
     return new Promise( async (resolve) => {
       img.onload = ()=>{
-        console.log("SDFJSDFLK");
+        // Tut byl 'SDFJSDFLK'
         resolve(img);
       };
       img.onabort = ()=>{
-        console.log('FuCK');
+        // Tut byl 'FuCK'
       }
     });
   }

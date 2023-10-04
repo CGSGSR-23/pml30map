@@ -81,7 +81,6 @@ class NeighbourArrowManager {
   } /* NeighbourArrowManager */
 
   addNeighbour(data: NodeData): NeighbourArrow {
-    console.log("neighbour added: ", data);
     let arrow = NeighbourArrow.create(this, data);
 
     this.system.addUnit(arrow);

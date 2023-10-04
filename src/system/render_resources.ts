@@ -462,7 +462,6 @@ class RenderTarget implements Target {
     convertFloat16ToFloat32(dv, 12);
 
     let output = new Vec4(dv.getFloat32(0), dv.getFloat32(4), dv.getFloat32(8), dv.getFloat32(12));
-    console.log(output.x, output.y, output.z, output.w);
     return output;
   } /* getAttachmentValue */
 
@@ -728,7 +727,7 @@ export class Topology {
     return tpl;
   } /* plane */
 
-  static cylinder(radius: number, subdivisionRate: number = 24): Topology {
+  static cone(upperRadius: number, lowerRadius: number, subdivisionRate: number = 24): Topology {
     let tpl = new Topology();
 
     tpl.idx = [];
@@ -736,15 +735,20 @@ export class Topology {
     tpl.type = TopologyType.TRIANGLE_STRIP;
 
     let texCoordCoef = 1 / (subdivisionRate + 1);
+
     for (let i = 0; i <= subdivisionRate; i++) {
       let a = i / (subdivisionRate - 2) * Math.PI * 2;
       let ca = Math.cos(a), sa = Math.sin(a);
 
-      tpl.vtx.push(Vertex.fromCoord(ca * radius, 0, sa * radius, i * texCoordCoef, 0, ca, 0, sa));
-      tpl.vtx.push(Vertex.fromCoord(ca * radius, 1, sa * radius, i * texCoordCoef, 0, ca, 0, sa));
+      tpl.vtx.push(Vertex.fromCoord(ca * lowerRadius, 0, sa * lowerRadius, i * texCoordCoef, 0, ca, 0, sa));
+      tpl.vtx.push(Vertex.fromCoord(ca * upperRadius, 1, sa * upperRadius, i * texCoordCoef, 0, ca, 0, sa));
     }
 
     return tpl;
+  } /* cone */
+
+  static cylinder(radius: number, subdivisionRate: number = 24): Topology {
+    return Topology.cone(radius, radius, subdivisionRate);
   } /* cylinder */
 
   static sphere(radius: number, width: number = 24, height: number = 24): Topology {
