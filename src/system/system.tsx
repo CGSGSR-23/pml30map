@@ -82,14 +82,6 @@ export class Timer {
   } /* response */
 } /* class Timer */
 
-// uniform cameraBuffer
-// {
-//   mat4 transformWorld;
-//   mat4 transformViewProj;
-//   vec3 cameraLocation;
-//   float currentID;
-// };
-
 class DisplayModel {
   model: Model;
   transform: Mat4;

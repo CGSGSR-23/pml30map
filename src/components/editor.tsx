@@ -10,9 +10,7 @@ import { BaseConstruction } from "../units/base_construction";
 import * as CameraController from "../units/camera_controller";
 import * as LinMath from '../system/linmath';
 import { MapEdit } from "../map_edit";
-import { MapConfig } from "../../server/map_config";
 import { NodeData, ConnectionData } from "../socket";
-import { ConnectionCheckOutFailedEvent } from "mongodb";
 import { ProjectManager } from "./project_manager";
 
 class Node implements Unit {

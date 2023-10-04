@@ -69,7 +69,6 @@ export class FixedArcball implements Unit {
   distance: number = 3.0;
   minProjSize: number = 0.5;
   maxProjSize: number = 2.0;
-
   azimuthLock: number = Math.PI * 0.2;
 
   static create(system: System): FixedArcball {

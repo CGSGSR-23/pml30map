@@ -1,9 +1,6 @@
 import { MongoDB } from "./mongodb";
-import { FloorInfo, MinimapInfo } from "./map_config";
 import { Vec2, Vec3 } from "../src/system/linmath";
 import { MapConfig, Config } from "./map_config";
-import { FtpConnection } from "./storage";
-import { Socket } from "socket.io";
 
 const defaultMapName = 'pml30map';
 
@@ -56,7 +53,6 @@ export class Client {
   mapsConfig: Config;
   curMapConfig: MapConfig = undefined;
   saveConfigCallBack;
-  ftpStorage: FtpConnection
 
   setupNodeRequests() {
 
@@ -330,7 +326,7 @@ export class Client {
     
   } /* End of 'setupMinimapEditorRequests' function */
 
-  constructor( nftpStorage: FtpConnection, mapsConfig: Config, saveConfig: ()=>void, newMongo: MongoDB, socket, newAccessLevel: number ) {
+  constructor( mapsConfig: Config, saveConfig: ()=>void, newMongo: MongoDB, socket, newAccessLevel: number ) {
   
     this.mongodb = newMongo;
     console.log(`Client connected with id: ${socket.id}`);

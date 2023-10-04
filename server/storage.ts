@@ -1,5 +1,6 @@
 const ftp = require("basic-ftp");
 const { Readable, Writable } = require("stream");
+const fs = require("fs");
 
 class CommandStack {
   stack: Array<()=>Promise<void>> = [];
@@ -127,7 +128,7 @@ export class FtpConnection {
     return this.client.ensureDir(path);
   }
 
-  async ensureDir( path: string ) {
+  private async ensureDir( path: string ) {
     await this.ftpCmdStack.pushCommand(async ()=>{
       try {
         //await this.goToRootDirUnsafe();
@@ -183,3 +184,38 @@ export class FtpConnection {
     return buf.getBuf();
   }
 }
+
+// Dummy pseudo-ftp file
+export class LocalConnection {
+  baseDirectory
+
+  constructor(baseDirectory: string = "../!FTPData/") {
+    this.baseDirectory = baseDirectory;
+  } /* constructor */
+
+  async uploadFile( fileData: Buffer, path: string, dest: string ): Promise<boolean> {
+    return new Promise<boolean>((resolve) => {
+      try {
+        fs.writeFileSync(this.baseDirectory + dest, 'binary')
+        resolve(true);
+      } catch (error) {
+        console.log("File reading ERROR -- " + error);
+        resolve(false);
+      }
+    });
+  } /* uploadFile */
+
+  async downloadFile(path: string): Promise<Buffer> {
+    return new Promise<Buffer>((resolve, reject) => {
+      let globalPath = this.baseDirectory + path;
+
+      console.log(`Reading file ${globalPath}`);
+      try {
+        resolve(fs.readFileSync(globalPath, {encoding: 'binary', flag: 'r'}));
+      } catch (error) {
+        console.log("File reading ERROR -- " + error);
+        reject(); 
+      }
+    })
+  } /* downloadFile */
+} /* FtpConnectionReplacer */
