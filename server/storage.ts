@@ -207,11 +207,11 @@ export class LocalConnection {
 
   async downloadFile(path: string): Promise<Buffer> {
     return new Promise<Buffer>((resolve, reject) => {
-      let globalPath = this.baseDirectory + path;
+      const globalPath = this.baseDirectory + path;
 
       console.log(`Reading file ${globalPath}`);
       try {
-        resolve(fs.readFileSync(globalPath, {encoding: 'binary', flag: 'r'}));
+        resolve(fs.readFileSync(globalPath));
       } catch (error) {
         console.log("File reading ERROR -- " + error);
         reject(); 

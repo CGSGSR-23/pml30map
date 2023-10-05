@@ -139,7 +139,7 @@ async function ioInit() {
 
   const fileStorage = new FtpConnection("ftpupload.net", "if0_35095022", "e9cdJZmBzH");
   fileStorage.setRootPath("pml30map.rf.gd/htdocs/storage/");
-  // const fileStorage = new LocalConnection("../.FTPData/");
+  // const fileStorage = new LocalConnection("../ftp_storage/");
 
   const config: Config = JSON.parse((await fileStorage.downloadFile(configFileName)).toString());
 
@@ -190,15 +190,16 @@ async function ioInit() {
     res.send(await fileStorage.downloadFile((req.query.file as string).split('?')[0]));
   });
 
-  app.use((req, res, next) => {
-    console.log('CORS ====== ' + req.url);
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.header(
-      "Access-Control-Allow-Headers",
-      "Origin, X-Requested-With, Content-Type, Accept"
-    );
-    next();
-  });
+
+  // app.use((req, res, next) => {
+  //   console.log('CORS ====== ' + req.url);
+  //   res.setHeader("Access-Control-Allow-Origin", "*");
+  //   res.header(
+  //     "Access-Control-Allow-Headers",
+  //     "Origin, X-Requested-With, Content-Type, Accept"
+  //   );
+  //   next();
+  // });
 
   app.use('/bin', express.static("../bin"));
 
