@@ -37,7 +37,7 @@ export function getQuery(): any {
   return out;
 }
 
-export class InputFile extends React.Component<{ value: string, onLoadCallBack?: ()=>void }, { inputRef: React.MutableRefObject<any>; isSelected: boolean, value: string }> {
+export class InputFile extends React.Component<{ value: string, onLoadCallBack?: ( inputFileRef?: InputFile )=>void }, { inputRef: React.MutableRefObject<any>; isSelected: boolean, value: string }> {
   
   constructor( props: { value: string, onLoadCallBack?: ()=>void } ) {
     super(props);
@@ -71,7 +71,7 @@ export class InputFile extends React.Component<{ value: string, onLoadCallBack?:
         }}/>
         <input type="button" value=">" onClick={()=>{
           if (this.props.onLoadCallBack != undefined)
-            this.props.onLoadCallBack();
+            this.props.onLoadCallBack(this);
           this.setState({ isSelected: false });
         }}/>
       </>}

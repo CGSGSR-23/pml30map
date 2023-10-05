@@ -196,10 +196,13 @@ export class LocalConnection {
   async uploadFile( fileData: Buffer, path: string, dest: string ): Promise<boolean> {
     return new Promise<boolean>((resolve) => {
       try {
-        fs.writeFileSync(this.baseDirectory + dest, 'binary')
+        if (!fs.existsSync(this.baseDirectory + path))
+          fs.mkdirSync(this.baseDirectory + path, { recursive: true });
+
+        fs.writeFileSync(this.baseDirectory + path + dest, fileData);
         resolve(true);
       } catch (error) {
-        console.log("File reading ERROR -- " + error);
+        console.log("File uploading ERROR -- " + error);
         resolve(false);
       }
     });
@@ -214,7 +217,7 @@ export class LocalConnection {
         resolve(fs.readFileSync(globalPath));
       } catch (error) {
         console.log("File reading ERROR -- " + error);
-        reject(); 
+        resolve(new Buffer(''));
       }
     })
   } /* downloadFile */

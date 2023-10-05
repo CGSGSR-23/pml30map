@@ -56,18 +56,19 @@ export class ProjectManager extends React.Component<ProjectManagerProps, Project
           <h2>Project manager</h2>
           <input type="button" value="close" onClick={this.props.closeCallBack}/>
         </div>
-        <h3>Projects:</h3>
         <div className="flexColumn">
           {this.state.config != undefined && <>
             {this.state.config.maps.map((m)=>{
               return (<div className="flexRow spaceBetween">
                 <p>{m.name}</p>
-                <input type="button" value="open" onClick={()=>{
-                  this.props.goToMapCallBack(m.name);
-                }}/>
-                <input type="button" value="delete" onClick={()=>{
-                  this.setState({ showDeleteSureBox: true, deleteProjectName: m.name });
-                }}/>
+                <div>
+                  <input type="button" value="delete" onClick={()=>{
+                    this.setState({ showDeleteSureBox: true, deleteProjectName: m.name });
+                  }}/>
+                  <input type="button" value="open" onClick={()=>{
+                    this.props.goToMapCallBack(m.name);
+                  }}/>
+                </div>
               </div>);
             })}
           </>}
@@ -93,16 +94,18 @@ export class ProjectManager extends React.Component<ProjectManagerProps, Project
             alignItems: 'center',
           }}>
             <div className="box flexRow">
-              Floor index: <input ref={this.state.inputRef} type="number"/><input type="button" value="Add" onClick={async ()=>{
-                const res = await this.props.socket.socket.send('createProjectReq', parseInt(this.state.inputRef.current.value));
+              Project name: <input ref={this.state.inputRef} type="text"/><input type="button" value="Create" onClick={async ()=>{
+                const res = await this.props.socket.socket.send('createProjectReq', this.state.inputRef.current.value);
                 
                 if (!res)
-                  this.props.logListRef.log({ str: "Such floor already exist", type: MessageType.error });
+                  this.props.logListRef.log({ str: "Project with such name already exist", type: MessageType.error });
                 else
                 {
-                  await this.props.socket.updateConfig();
+                  await this.updateConfig();
                   this.setState({ showCreateProjectBox: false });  
                 }
+              }}/><input type="button" value="Cancel" onClick={async ()=>{
+                this.setState({ showCreateProjectBox: false });  
               }}/>
             </div>
           </div>
@@ -127,8 +130,7 @@ export class ProjectManager extends React.Component<ProjectManagerProps, Project
                   await this.props.socket.socket.send('deleteProjectReq', this.state.deleteProjectName);
                   await this.updateConfig();
                   this.setState({ showDeleteSureBox: false, deleteProjectName: '' });
-                }}/>
-                <input type="button" value="Cancel" onClick={()=>{
+                }}/><input type="button" value="Cancel" onClick={()=>{
                   this.setState({ showDeleteSureBox: false, deleteProjectName: '' });
                 }}/>
               </div>

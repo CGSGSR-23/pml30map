@@ -337,8 +337,31 @@ export class Client {
     this.mapsConfig = mapsConfig;
 
     // Map
-    this.dbName = socket.request._query.map != undefined ? this.mongodb.dbs[socket.request._query.map] != undefined ? socket.request._query.map : defaultMapName : defaultMapName;
-    console.log("Active map - " + this.dbName);
+    const inMapName = socket.request._query.map;
+    var doesMapExist = false;
+    for (let m in mapsConfig.maps)
+      if (mapsConfig.maps[m].name == inMapName){
+        doesMapExist = true;
+        break;
+      }
+
+    if (inMapName == undefined)
+      this.dbName = defaultMapName;
+    if (doesMapExist) {
+      if (this.mongodb.dbs[inMapName] == undefined) {
+        // Add map to db
+        console.log("ERROR - can't find such mongo database - " + inMapName);
+        this.dbName = defaultMapName
+      }
+      else
+        this.dbName = inMapName;
+    }
+    else {
+      console.log("ERROR - don't have such map - " + inMapName);
+      this.dbName = defaultMapName;
+    }
+
+    console.log("Active map - " + this.dbName + ', Initial map name  - ' + inMapName);
     this.db = this.mongodb.dbs[this.dbName];
 
     console.log(this.dbName);
@@ -440,7 +463,6 @@ export class Client {
     });
 
     socket.on("getNearestReq", async ( inPos, floor, res )=>{
-      //let result = await DB.addDB(db);
       let pos = new Vec3(inPos.x, 0, inPos.z);
       let nodesData = await this.db.getAllNodesData();
       

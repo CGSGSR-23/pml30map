@@ -1,8 +1,8 @@
-import React from "react";
+import React, { InputHTMLAttributes } from "react";
 import { URI } from "../socket";
 import { queryToStr } from "./support";
 import { MinimapEditor } from "./minimap_editor";
-import { Overlay } from "./overlay";
+import { MessageType, Overlay } from "./overlay";
 import { System, Unit } from "../system/system";
 import { Topology, Material, Model, UniformBuffer } from "../system/render_resources";
 import { Skysphere } from "../units/skysphere";
@@ -12,7 +12,8 @@ import * as LinMath from '../system/linmath';
 import { MapEdit } from "../map_edit";
 import { NodeData, ConnectionData } from "../socket";
 import { ProjectManager } from "./project_manager";
-
+import { InputFile } from "./support";
+import { uploadFile } from "./upload";
 class Node implements Unit {
   private manager: GraphManager;
   private transform: LinMath.Mat4;
@@ -451,10 +452,11 @@ interface EditorState {
   floorNumberRef: React.MutableRefObject<any>;
   menuJSX: JSX.Element;
   nodeSettingsRef: React.MutableRefObject<any>;
+  logListRef: React.MutableRefObject<Overlay>;
   showNodeSettings: boolean;
   showMinimapSettings: boolean;
   showProjectManager: boolean;
-  logListRef: React.MutableRefObject<Overlay>;
+  showChangeModelBox: boolean;
 }
 
 interface QueryData {
@@ -516,6 +518,7 @@ export class Editor extends React.Component<EditorProps, EditorState> implements
       menuJSX: (<></>),
       showNodeSettings: true,
       showMinimapSettings: false,
+      showChangeModelBox: false,
       showProjectManager: false,
     };
     window.addEventListener("resize", () => {
@@ -591,6 +594,36 @@ export class Editor extends React.Component<EditorProps, EditorState> implements
             location.reload();
           }}/>
         </div>}
+        {this.state.showChangeModelBox && <div style={{
+          zIndex: 4,
+          position: 'absolute',
+          backgroundColor: 'var(--shadow2-color)',
+
+          right: 0,
+          top: 0,
+          left: 0,
+          bottom: 0,
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}>
+          <div className="box flexRow">
+              Choose another model: <InputFile value="Model file" onLoadCallBack={async ( inputFileRef: InputFile )=>{
+                const files = inputFileRef.getFiles();
+                if (files.length <= 0)
+                {
+                  this.state.logListRef.current.log({ str: "No files selected", type: MessageType.warning });
+                  return;
+                }
+                console.log('Uploading model file');
+                await uploadFile(files[0], `maps/${this.props.socket.mapConfig.name}/models/`, 'map.obj');
+                location.reload();
+                this.setState({ showChangeModelBox: false });
+              }}/><input type="button" value="Cancel" onClick={async ()=>{
+                this.setState({ showChangeModelBox: false });  
+              }}/>
+            </div>
+        </div>}
         <Overlay ref={this.state.logListRef}/>
       </>
     );
@@ -627,25 +660,10 @@ export class Editor extends React.Component<EditorProps, EditorState> implements
         <input type="button" value="Go to server" onClick={()=>{
             window.location.href = "./server.html" + window.location.search;
         }}/><br/>
-        {allMaps.length > 0 && <>
-          <h2> Other maps:</h2>
-          <div style={{
-            display: 'flex',
-            flexDirection: 'row-reverse'
-          }}>
-            {allMaps.map((m)=>{
-              if (m == this.props.socket.mapConfig.name)
-                return (<></>);
-
-              return (<><input type="button" value={m} onClick={()=>{
-                if (query.map != undefined)
-                this.curQuery.map = m;
-                this.updateQuery();
-                location.reload();
-              }}/><br/></>);
-            })}
-          </div></>}
-        {this.props.socket.mapConfig.minimapInfo.floorCount > 1 &&
+        <input type="button" value="Change model" onClick={()=>{
+          this.setState({ showChangeModelBox: true });
+        }}/><br/>
+        {this.props.socket.mapConfig.minimapInfo.floorCount > 1 && <>
         <div className="flexRow spaceBetween">
           Visible floors:
           <div className="flexRow">
@@ -655,7 +673,7 @@ export class Editor extends React.Component<EditorProps, EditorState> implements
             }} style={{ width: this.props.socket.mapConfig.minimapInfo.floorCount * 2 + 'em' }}/>
             <div ref={this.state.floorNumberRef} style={{width: '1em'}}>{this.baseConstruction.topFloor}</div>
           </div>
-        </div>}
+        </div><br/></>}
         <input type="button" value="Minimap settings" onClick={()=>{
           this.setState({ showMinimapSettings: true });
         }}/>
