@@ -137,9 +137,10 @@ async function ioInit() {
   const DB = new MongoDB;
   const configFileName = 'config.json';
 
-  // const fileStorage = new FtpConnection("ftpupload.net", "if0_35095022", "e9cdJZmBzH");
-  // fileStorage.setRootPath("pml30map.rf.gd/htdocs/storage/");
-  const fileStorage = new LocalConnection("../.ftp_storage/");
+  const fileStorage = new FtpConnection("ftpupload.net", "if0_35095022", "e9cdJZmBzH");
+  fileStorage.setRootPath("pml30map.rf.gd/htdocs/storage/");
+  // !!!LOCAL
+  // const fileStorage = new LocalConnection("../.ftp_storage/");
 
   const config: Config = JSON.parse((await fileStorage.downloadFile(configFileName)).toString());
 
@@ -156,7 +157,8 @@ async function ioInit() {
   };
   
   await DB.init("mongodb+srv://doadmin:i04J9b2t1X853Cuy@db-mongodb-pml30-75e49c39.mongo.ondigitalocean.com/admin?tls=true&authSource=admin", config.maps.map((e)=>{ return e.dbName; }));
-  // await ftpStorage.connect();
+  // !!!LOCAL
+  // await DB.init("mongodb://localhost:27017", config.maps.map((e)=>{ return e.dbName; }));
 
   
   // For test
