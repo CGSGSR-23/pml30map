@@ -14,6 +14,7 @@ import { NodeData, ConnectionData } from "../socket";
 import { ProjectManager } from "./project_manager";
 import { InputFile } from "./support";
 import { uploadFile } from "./upload";
+
 class Node implements Unit {
   private manager: GraphManager;
   private transform: LinMath.Mat4;
@@ -92,16 +93,16 @@ class Connection implements Unit {
 } /* Connection */
 
 
-/* Manager of VISUAL PART OF graph */
 class GraphManager {
   private system: System;
+  private editor: Editor;
   private nodes: Map<string, Node> = new Map<string, Node>();
   private connections: Map<string, Connection> = new Map<string, Connection>();
 
   nodeModel: Model;
   connectionModel: Model;
 
-  static async create(system: System): Promise<GraphManager> {
+  static async create(system: System, editor: Editor): Promise<GraphManager> {
     let manager = new GraphManager();
     manager.system = system;
 
@@ -128,6 +129,12 @@ class GraphManager {
     return unit;
   } /* addConnection */
 
+  updateConnectionsTransform() {
+    this.connections.forEach((connection) => {
+      connection.updateTransform();
+    });
+  } /* updateConnectionsTransform */
+
   getNode(uri: URI): Node | undefined {
     return this.nodes.get(uri.toStr());
   } /* getNode */
@@ -139,8 +146,22 @@ class GraphManager {
     if (value !== undefined) {
       value.doSuicide = true;
       this.nodes.delete(nodeKey);
+
+      // delete connections
+      let deletedNodeKeys = [];
+
+      this.connections.forEach((connection, key) => {
+        if (connection.data.first === node.data.uri || connection.data.second === node.data.uri) {
+          connection.doSuicide = true;
+          deletedNodeKeys.push(key);
+        }
+      });
+      for (let key of deletedNodeKeys)
+        this.connections.delete(key);
+
       return true;
     }
+
     return false;
   } /* delNode */
 
@@ -188,13 +209,17 @@ class NodeSelector implements Unit {
       // Handle connection mode
       if (selector.mode === NodeSelectorMode.CONNECT && selector.selectedNode.doSuicide !== true) {
         console.log('connect: ', selector.selectedNode, node);
-        editor.props.socket.connectNodes(selector.selectedNode.data.uri, node.data.uri);
         let newConnectionData: ConnectionData = {
           uri: null,
           first: selector.selectedNode.data.uri,
           second: node.data.uri,
         };
-        editor.graphManager.addConnection(newConnectionData);
+        
+        editor.props.socket.connectNodes(selector.selectedNode.data.uri, node.data.uri).then((flag) => {
+          console.log(flag);
+          if (flag)
+            editor.graphManager.addConnection(newConnectionData);
+        });
         selector.mode = NodeSelectorMode.SELECT;
         return;
       }
@@ -290,6 +315,77 @@ class ConnectionSelector implements Unit {
   } /* response */
 } /* ConnectionSelector */
 
+class NodeController implements Unit {
+  doSuicide: boolean;
+  unitType: string = "NodeController";
+
+  movedNode: Node | null = null;
+
+  static async create(system: System, editor: Editor): Promise<NodeController> {
+    let controller = new NodeController();
+
+    system.canvas.addEventListener('click', async (event: PointerEvent) => {
+      if (!event.ctrlKey)
+        return;
+
+        let position = system.getScreenPosition(event.x, event.y);
+
+        let nodeData: NodeData = {
+          uri: new URI([]),
+          name: '',
+          skysphere: {
+            path: '',
+            rotation: 0
+          },
+          position: position,
+          floor: 0,
+        };
+  
+        let newNodeURI = await editor.props.socket.addNode(nodeData);
+        nodeData.uri = newNodeURI;
+        editor.graphManager.addNode(nodeData);
+    });
+
+    system.canvas.addEventListener('click', async (event: PointerEvent) => {
+      if (controller.movedNode === null) {
+        // select node
+        if (!event.shiftKey)
+          return;
+
+        let node = system.getScreenUnit(event.x, event.y);
+
+        if (node !== null && node.unitType === "Node") {
+          controller.movedNode = node as Node;
+        }
+      } else {
+        // set node position
+
+        let position = system.getScreenPosition(event.x, event.y);
+
+        // check if node is deleted
+        if (controller.movedNode.doSuicide) {
+          controller.movedNode = null;
+          return;
+        }
+        controller.movedNode.data.position = position.copy();
+        controller.movedNode.updateTrasnform();
+
+        editor.props.socket.updateNode(controller.movedNode.data.uri, controller.movedNode.data);
+        editor.graphManager.updateConnectionsTransform();
+        
+        // End reposition
+        controller.movedNode = null;
+      }
+    });
+
+    return controller;
+  } /* create */
+
+  response(system: System): void {
+
+  } /* response */
+} /* NodeController */
+
 interface DisplayedNodeData {
   uri: URI,
   name: string,
@@ -384,6 +480,8 @@ class NodeSettings extends React.Component<any, NodeSettingsState> {
 
   render() {
     return (<>
+      <p>CTRL+Mouse - add new node</p>
+      <p>SHIFT+Mouse - change node position</p>
       <h2> Node settings</h2>
 
       <div className="flexRow spaceBetween">
@@ -471,8 +569,10 @@ export class Editor extends React.Component<EditorProps, EditorState> implements
   system: System = null;
   graphManager: GraphManager;
   curQuery: QueryData = {};
+
   nodeSelector: NodeSelector;
   connectionSelector: ConnectionSelector;
+  nodeController: NodeController;
   
   unitType: string = "EditorUnit";
   skysphere: Skysphere;
@@ -630,17 +730,17 @@ export class Editor extends React.Component<EditorProps, EditorState> implements
   } /* End of 'render' function */
 
   async componentDidMount() {
-    // system initialization
     this.system = await System.create(this.state.canvasRef.current);
     this.system.resize(this.state.canvasRef.current.clientWidth, this.state.canvasRef.current.clientHeight);
 
     this.skysphere = await this.system.createUnit(Skysphere.create, "bin/imgs/default.png") as Skysphere;
     this.baseConstruction = await this.system.createUnit(BaseConstruction.create, this.props.socket.getStoragePath("models/map.obj")) as BaseConstruction;
-
-    this.graphManager = await GraphManager.create(this.system);
-
+    
+    this.graphManager = await GraphManager.create(this.system, this);
+    
     this.nodeSelector = await this.system.createUnit(NodeSelector.create, this) as NodeSelector;
     this.connectionSelector = await this.system.createUnit(ConnectionSelector.create, this) as ConnectionSelector;
+    this.nodeController = await this.system.createUnit(NodeController.create, this) as NodeController;
 
     this.system.createUnit(CameraController.Arcball.create);
 

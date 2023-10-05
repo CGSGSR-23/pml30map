@@ -30,19 +30,25 @@ class Database {
     var result = await this.nodesC.updateOne({_id: new ObjectId(uri)}, { $set: newData });
     return result;
   }
-  
+
   async delNode( uri ) {
-    return await this.nodesC.deleteOne({_id: new ObjectId(uri)});
-  }
+    let uriStr = `[${[...uri.id]}]`;
+
+    return Promise.all([
+      this.nodesC.deleteOne({_id: new ObjectId(uri)}),
+      this.connectionsC.deleteMany({ id1: uriStr }),
+      this.connectionsC.deleteMany({ id2: uriStr }),
+    ]);
+  } /* delNode */
   
   async addNode( data ) {
     var insertedURI = (await this.nodesC.insertOne(data)).insertedId;
     return insertedURI.id;
-  }
+  } /* addNode */
 
   async getNodeConnections( uri ) {
     let uriStr = "[" + new Uint8Array(uri).toString() + "]";
-    
+
     let cs = (await (await this.connectionsC.find({ id1: uriStr })).toArray()).concat((await (await this.connectionsC.find({ id2: uriStr })).toArray()));
     
     return cs;
@@ -56,7 +62,7 @@ class Database {
 
   async getNeighbours( uri ) {
     let uriStr = "[" + new Uint8Array(uri).toString() + "]";
-    
+
     let right = await (await this.connectionsC.find({ id1: uriStr })).toArray();
     let left = await (await this.connectionsC.find({ id2: uriStr })).toArray();
 
@@ -98,7 +104,8 @@ class Database {
   async delConnection( uri1, uri2 ) {
     let uri1Str = "[" + new Uint8Array(uri1).toString() + "]";
     let uri2Str = "[" + new Uint8Array(uri2).toString() + "]";
-    
+
+    // Delete all connections
     this.connectionsC.deleteOne({ id1: uri1Str, id2: uri2Str });
     this.connectionsC.deleteOne({ id1: uri2Str, id2: uri1Str });
     return true;
