@@ -157,11 +157,17 @@ class GraphManager {
   } /* delConnection */
 } /* ConnectionManager */
 
+enum NodeSelectorMode {
+  SELECT,
+  CONNECT,
+}
+
 class NodeSelector implements Unit {
   private arrow: Model;
   doSuicide: boolean;
   unitType: string = "NodeSelector";
   selectedNode: Node | null = null;
+  mode: NodeSelectorMode = NodeSelectorMode.SELECT;
 
   static async create(system: System, editor: Editor): Promise<NodeSelector> {
     let selector = new NodeSelector();
@@ -178,6 +184,20 @@ class NodeSelector implements Unit {
 
       let node = unknownUnit as Node;
 
+      // Handle connection mode
+      if (selector.mode === NodeSelectorMode.CONNECT && selector.selectedNode.doSuicide !== true) {
+        console.log('connect: ', selector.selectedNode, node);
+        editor.props.socket.connectNodes(selector.selectedNode.data.uri, node.data.uri);
+        let newConnectionData: ConnectionData = {
+          uri: null,
+          first: selector.selectedNode.data.uri,
+          second: node.data.uri,
+        };
+        editor.graphManager.addConnection(newConnectionData);
+        selector.mode = NodeSelectorMode.SELECT;
+        return;
+      }
+
       selector.selectedNode = node;
 
       const onMakeDefault = () => {
@@ -189,6 +209,10 @@ class NodeSelector implements Unit {
         editor.graphManager.delNode(node);
         editor.props.socket.delNode(node.data.uri);
         console.log(`deleted \'${node.data.name}\' node`);
+      };
+
+      const onConnectWith = () => {
+        selector.mode = NodeSelectorMode.CONNECT;
       };
 
       const onDataUpdate = (type: string, value: any) => {
@@ -209,7 +233,7 @@ class NodeSelector implements Unit {
         editor.props.socket.updateNode(node.uri, node.data);
       };
 
-      editor.state.nodeSettingsRef.current.selectNode(node.data, onDataUpdate, onMakeDefault, onDelete);
+      editor.state.nodeSettingsRef.current.selectNode(node.data, onDataUpdate, onMakeDefault, onDelete, onConnectWith);
     });
 
     return selector;
@@ -222,6 +246,49 @@ class NodeSelector implements Unit {
   } /* response */
 } /* NodeSelector */
 
+class ConnectionSelector implements Unit {
+  doSuicide: boolean;
+  unitType: string = "ConnectionSelector";
+  selectedConnection: Connection | null = null;
+
+  /**
+   * Connection selector create function
+   * @param system System to create selector in
+   * @param editor Editor to create selector for
+   * @returns New connection selector
+   */
+  static create(system: System, editor: Editor): ConnectionSelector {
+    let selector = new ConnectionSelector();
+
+    system.canvas.addEventListener('click', (event: PointerEvent) => {
+      let unknownUnit = system.getScreenUnit(event.clientX, event.clientY);
+
+      if (unknownUnit === null || unknownUnit.unitType !== "Connection")
+        return;
+
+      let connection = unknownUnit as Connection;
+      selector.selectedConnection = connection;
+
+      const onDelete = () => {
+        editor.graphManager.delConnection(connection);
+        editor.props.socket.disconnectNodes(connection.data.first, connection.data.second);
+      };
+
+      editor.state.nodeSettingsRef.current.selectConnection(connection.data, onDelete);
+    });
+
+    return selector;
+  } /* create */
+
+  /**
+   * Connection selector class
+   * @param system 
+   */
+  response(system: System): void {
+
+  } /* response */
+} /* ConnectionSelector */
+
 interface DisplayedNodeData {
   uri: URI,
   name: string,
@@ -229,40 +296,59 @@ interface DisplayedNodeData {
   floor: number,
 }
 
-interface NodeSettingsProps {
-  data: DisplayedNodeData;
-} /* NodeSettingsProps */
-
 type NodeSettingsUpdateCallback = (name: string, value: any) => void;
 type NodeSettingsMakeDefaultCallback = () => void;
 type NodeSettingsDeleteCallback = () => void;
+type NodeSettingsConnectWithCallback = () => void;
+type NodeSettingsConenctionDeleteCallback =  () => void;
 
 interface NodeSettingsState {
   nameRef: React.MutableRefObject<any>;
   skysphereRef: React.MutableRefObject<any>;
   floorRef: React.MutableRefObject<any>;
 
+  nodeData: NodeData;
+  connectionData: ConnectionData;
+
   onValueUpdate: NodeSettingsUpdateCallback;
   onMakeDefault: NodeSettingsMakeDefaultCallback;
   onDelete: NodeSettingsDeleteCallback;
+  onConnectWith: NodeSettingsConnectWithCallback;
+  onConnectionDelete: NodeSettingsConenctionDeleteCallback;
 } /* NodeSettingsState */
 
-class NodeSettings extends React.Component<NodeSettingsProps, NodeSettingsState> {
+class NodeSettings extends React.Component<any, NodeSettingsState> {
   nodeNameChanged: boolean = false;
   skysphereNameChanged: boolean = false;
 
-  constructor( props: NodeSettingsProps ) {
+  constructor( props: any ) {
     super(props);
+    let emptyURI = new URI([0, 0, 0, 0, 0, 0, 0, 0]);
     this.state = {
       // Smth
       nameRef: React.createRef(),
       floorRef: React.createRef(),
       skysphereRef: React.createRef(),
 
+      nodeData: {
+        uri: emptyURI,
+        name: 'unknown',
+        skysphere: { path: 'amogus', rotation: 0 },
+        position: new LinMath.Vec3(0, 0, 0),
+        floor: 0,
+      },
+      connectionData: {
+        uri: emptyURI,
+        first: emptyURI,
+        second: emptyURI
+      },
+
       // State functions
       onValueUpdate: () => {},
       onMakeDefault: () => {},
       onDelete: () => {},
+      onConnectWith: () => {},
+      onConnectionDelete: () => {},
    };
   } /* constructor */
 
@@ -273,41 +359,35 @@ class NodeSettings extends React.Component<NodeSettingsProps, NodeSettingsState>
   selectNode(data: NodeData,
     valueUpdateCallback: NodeSettingsUpdateCallback,
     makeDefaultCallback: NodeSettingsMakeDefaultCallback,
-    deleteCallback: NodeSettingsDeleteCallback
+    deleteCallback: NodeSettingsDeleteCallback,
+    connectWithCallback: NodeSettingsConnectWithCallback,
   ): void {
     this.state.floorRef.current.value = data.floor;
     this.state.nameRef.current.value = data.name;
     this.state.skysphereRef.current.value = data.skysphere.path;
     this.setState({
+      nodeData: data,
       onValueUpdate: valueUpdateCallback,
       onMakeDefault: makeDefaultCallback,
-      onDelete: deleteCallback
+      onDelete: deleteCallback,
+      onConnectWith: connectWithCallback,
     });
   } /* selectNode */
 
+  selectConnection(data: ConnectionData, onDelete: NodeSettingsConenctionDeleteCallback) {
+    this.setState({
+      connectionData: data,
+      onConnectionDelete: onDelete,
+    });
+  } /* selectConnection */
+
   render() {
     return (<>
-      <div className="flexRow spaceBetween">
-        <h2> Node settings</h2>
-        {/*
-        <div>
-          <input type="button" value="Save" onClick={()=>{
-            this.props.onSave({
-              uri: this.props.data.uri,
-              name: this.state.nameRef.current.value,
-              skysphere: this.state.skysphereRef.current.value,
-              floor: this.state.floorRef.current.value,
-            });
-            this.props.onClose();
-          }}/>
-          <input type="button" value="Cancel" onClick={this.props.onClose}/>
-        </div>
-      */}
-      </div>
+      <h2> Node settings</h2>
 
       <div className="flexRow spaceBetween">
         <p>URI:</p>
-        <p>{this.props.data.uri.toStr()}</p>
+        <p>{this.state.nodeData.uri.toStr()}</p>
       </div>
 
       {/* Node name block */}
@@ -341,16 +421,24 @@ class NodeSettings extends React.Component<NodeSettingsProps, NodeSettingsState>
       </div>
 
       {/* MakeDefault and Delete button block */}
+      <input type="button" value="Connect with other node" onClick={() => {this.state.onConnectWith()}}/>
       <input type="button" value="Make default" onClick={() => {this.state.onMakeDefault();}}/>
       <input type="button" value="Delete node" onClick={() => {this.state.onDelete()}}/>
+
+      <h2>Connection settings</h2>
+      <div className="flexRow spaceBetween">
+        <p>URI:</p>
+        <p>{`${this.state.connectionData.first.toStr()} - ${this.state.connectionData.second.toStr()}`}</p>
+      </div>
+      <input type="button" value="Delete connection" onClick={() => {this.state.onConnectionDelete()}}/>
     </>);
   }
 
   componentDidMount(): void {
-    this.state.nameRef.current.value = this.props.data.name;
-    this.state.skysphereRef.current.value = this.props.data.skysphere;
-    this.state.floorRef.current.value = this.props.data.floor;
-  }
+    this.state.nameRef.current.value = this.state.nodeData.name;
+    this.state.skysphereRef.current.value = this.state.nodeData.skysphere;
+    this.state.floorRef.current.value = this.state.nodeData.floor;
+  } /* componentDidMount */
 } /* NodeSettings */
 
 interface EditorProps {
@@ -382,6 +470,7 @@ export class Editor extends React.Component<EditorProps, EditorState> implements
   graphManager: GraphManager;
   curQuery: QueryData = {};
   nodeSelector: NodeSelector;
+  connectionSelector: ConnectionSelector;
   
   unitType: string = "EditorUnit";
   skysphere: Skysphere;
@@ -453,7 +542,7 @@ export class Editor extends React.Component<EditorProps, EditorState> implements
           position: 'absolute',
           width: '22em',
         }}>
-          {this.state.showNodeSettings && <NodeSettings ref={this.state.nodeSettingsRef} data={{floor: 0, name: 'nodename', skysphere: {rotation: 0, path: 'nodsjysphere'}, uri: new URI('[0, 0, 0, 0, 0, 0, 0, 0]')}}/>}
+          {this.state.showNodeSettings && <NodeSettings ref={this.state.nodeSettingsRef}/>}
         </div>
         <div className="box" style={{
           zIndex: 3,
@@ -518,6 +607,7 @@ export class Editor extends React.Component<EditorProps, EditorState> implements
     this.graphManager = await GraphManager.create(this.system);
 
     this.nodeSelector = await this.system.createUnit(NodeSelector.create, this) as NodeSelector;
+    this.connectionSelector = await this.system.createUnit(ConnectionSelector.create, this) as ConnectionSelector;
 
     this.system.createUnit(CameraController.Arcball.create);
 
@@ -598,4 +688,3 @@ export class Editor extends React.Component<EditorProps, EditorState> implements
       this.graphManager.addConnection(connection);
   } /* componentDidMount */
 } /* End of 'Viewer' class */
-

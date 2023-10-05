@@ -137,9 +137,9 @@ async function ioInit() {
   const DB = new MongoDB;
   const configFileName = 'config.json';
 
-  const fileStorage = new FtpConnection("ftpupload.net", "if0_35095022", "e9cdJZmBzH");
-  fileStorage.setRootPath("pml30map.rf.gd/htdocs/storage/");
-  // const fileStorage = new LocalConnection("../ftp_storage/");
+  // const fileStorage = new FtpConnection("ftpupload.net", "if0_35095022", "e9cdJZmBzH");
+  // fileStorage.setRootPath("pml30map.rf.gd/htdocs/storage/");
+  const fileStorage = new LocalConnection("../.ftp_storage/");
 
   const config: Config = JSON.parse((await fileStorage.downloadFile(configFileName)).toString());
 

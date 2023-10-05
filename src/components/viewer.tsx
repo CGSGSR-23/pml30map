@@ -112,15 +112,15 @@ class MovementHandler implements Unit {
     // Go to node by arrow click
     window.addEventListener("keydown", (event: KeyboardEvent) => {
       let direction = system.camera.dir.xz().normalize();
-      
+
       switch (event.key) {
         case "ArrowUp"    :                                break;
         case "ArrowDown"  : direction = direction.neg();   break;
-        case "ArrowRight" : direction = direction.right(); break;
-        case "ArrowLeft"  : direction = direction.neg();   break;
+        case "ArrowRight" : direction = direction.left();  break;
+        case "ArrowLeft"  : direction = direction.right(); break;
         default           :                                return;
       }
-      
+
       let maxDot = -2.0;
       let maxDotArrow: NeighbourArrow | null = null;
       for (let arrow of viewer.neighbourManager.neighbours) {
