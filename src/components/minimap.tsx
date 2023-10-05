@@ -110,10 +110,13 @@ export class Minimap extends React.Component<MinimapProps, MinimapState> {
     });
   }
 
-  setAvatar( pos: Vec2, floor: number) {
+  setAvatar( pos: Vec2, floor: number ) {
     this.avatarPos = pos;
     this.avatarFloor = floor;
-    this.updateCanvas();
+    if (this.avatarFloor != this.state.curFloorInd)
+      this.switchToFloor(this.avatarFloor);
+    else
+      this.updateCanvas();
   }
 
   toWorld( pos: Vec2, floorIndex: number ): Vec3 {
