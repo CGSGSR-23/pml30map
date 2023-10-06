@@ -4,10 +4,10 @@ import { FloorInfo } from "../../server/map_config";
 import { Vec2 } from "../system/linmath";
 import { uploadFile } from "./upload";
 import { MapEdit } from "../map_edit";
-import { InputFile } from "./support";
+import { InputFile, OverFullScreen } from "./support";
 import { Overlay, MessageType } from "./overlay";
-
 import { MinimapEditReqType, MinimapPosType } from "../../server/client";
+
 export interface MinimapEditorProps {
   socket: MapEdit;
   closeCallBack: ()=>void;
@@ -257,8 +257,8 @@ export class MinimapEditor extends React.Component<MinimapEditorProps, MinimapEd
               <p>Img start pos - <b>[{this.state.mapConfig.minimapInfo.imgStartPos.x}, {this.state.mapConfig.minimapInfo.imgStartPos.y}]</b></p>
               <input type="button" value="Edit" onClick={async ()=>{
                 if (this.state.editFloor == undefined) {
-                  this.props.logListRef.log({ type: MessageType.error, str: "You can't change without selected floor"});
-                  this.props.logListRef.log({ type: MessageType.log, str: "please select floor"});
+                  this.props.logListRef.error("You can't change without selected floor");
+                  this.props.logListRef.log("please select floor");
                 }
                 this.enableSetPosMode( async ( pos: Vec2 )=>{
                   await this.props.socket.editMinimap({type: MinimapEditReqType.setImgPos, data: { posType: MinimapPosType.Start, pos: new Vec2(Math.floor(pos.x), Math.floor(pos.y)) }});
@@ -285,20 +285,7 @@ export class MinimapEditor extends React.Component<MinimapEditorProps, MinimapEd
             </div>
           </div>
         </div>
-        {this.state.showAddFloorWindow &&
-          <div style={{
-            zIndex: 5,
-            position: 'absolute',
-            backgroundColor: 'var(--shadow2-color)',  
-            
-            right: 0,
-            top: 0,
-            left: 0,
-            bottom: 0,
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}>
+        {this.state.showAddFloorWindow && <OverFullScreen zIndex={5}>
             <div className="box">
               <div className="flexRow">
                 Floor index: <input ref={this.state.inputRef} type="number"/><input type="button" value="Add" onClick={async ()=>{
@@ -315,7 +302,7 @@ export class MinimapEditor extends React.Component<MinimapEditorProps, MinimapEd
               </div>
               {this.state.errorText != "" && <p>{this.state.errorText}</p>}
             </div>
-          </div>
+          </OverFullScreen>
         }
       </div>
     );

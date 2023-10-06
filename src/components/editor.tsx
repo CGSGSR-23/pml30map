@@ -1,6 +1,6 @@
 import React, { InputHTMLAttributes } from "react";
 import { URI } from "../socket";
-import { queryToStr } from "./support";
+import { queryToStr, OverFullScreen } from "./support";
 import { MinimapEditor } from "./minimap_editor";
 import { MessageType, Overlay } from "./overlay";
 import { System, Unit } from "../system/system";
@@ -656,36 +656,12 @@ export class Editor extends React.Component<EditorProps, EditorState> implements
           <h2>Menu</h2>
           {this.state.menuJSX}
         </div>
-        {this.state.showMinimapSettings && <div style={{
-          zIndex: 4,
-          position: 'absolute',
-          backgroundColor: 'var(--shadow2-color)',
-
-          right: 0,
-          top: 0,
-          left: 0,
-          bottom: 0,
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}>
+        {this.state.showMinimapSettings && <OverFullScreen zIndex={4}>
           <MinimapEditor socket={this.props.socket} logListRef={this.state.logListRef.current} closeCallBack={()=>{
             this.setState({ showMinimapSettings: false });
           }}/>
-        </div>}
-        {this.state.showProjectManager && <div style={{
-          zIndex: 4,
-          position: 'absolute',
-          backgroundColor: 'var(--shadow2-color)',
-
-          right: 0,
-          top: 0,
-          left: 0,
-          bottom: 0,
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}>
+        </OverFullScreen>}
+        {this.state.showProjectManager && <OverFullScreen zIndex={4}>
           <ProjectManager socket={this.props.socket} logListRef={this.state.logListRef.current} closeCallBack={()=>{
             this.setState({ showProjectManager: false });
           }} goToMapCallBack={(m)=>{
@@ -693,26 +669,14 @@ export class Editor extends React.Component<EditorProps, EditorState> implements
             this.updateQuery();
             location.reload();
           }}/>
-        </div>}
-        {this.state.showChangeModelBox && <div style={{
-          zIndex: 4,
-          position: 'absolute',
-          backgroundColor: 'var(--shadow2-color)',
-
-          right: 0,
-          top: 0,
-          left: 0,
-          bottom: 0,
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}>
+        </OverFullScreen>}
+        {this.state.showChangeModelBox && <OverFullScreen zIndex={4}>
           <div className="box flexRow">
               Choose another model: <InputFile value="Model file" onLoadCallBack={async ( inputFileRef: InputFile )=>{
                 const files = inputFileRef.getFiles();
                 if (files.length <= 0)
                 {
-                  this.state.logListRef.current.log({ str: "No files selected", type: MessageType.warning });
+                  this.state.logListRef.current.warning("No files selected");
                   return;
                 }
                 console.log('Uploading model file');
@@ -723,7 +687,7 @@ export class Editor extends React.Component<EditorProps, EditorState> implements
                 this.setState({ showChangeModelBox: false });  
               }}/>
             </div>
-        </div>}
+        </OverFullScreen>}
         <Overlay ref={this.state.logListRef}/>
       </>
     );

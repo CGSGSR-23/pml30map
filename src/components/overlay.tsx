@@ -1,6 +1,7 @@
 import React from "react";
 import { PushButton } from "./support";
 import { ButtonValueType } from "./support";
+import { OverFullScreen } from "./support";
 
 export enum FormValueType {
   Text,
@@ -94,6 +95,7 @@ interface OverlayState {
   messageStack: Array<Message>;
   showOverBox: boolean;
   overBoxJSX: JSX.Element;
+  isLoading: boolean;
 }
 
 export class Overlay extends React.Component<{}, OverlayState> {
@@ -106,6 +108,7 @@ export class Overlay extends React.Component<{}, OverlayState> {
       messageStack: [],
       showOverBox: false,
       overBoxJSX: (<></>),
+      isLoading: false,
     };
   }
 
@@ -139,19 +142,9 @@ export class Overlay extends React.Component<{}, OverlayState> {
         </div>);
       })}
     </div>
-    {this.state.showOverBox && <div style={{
-        zIndex: 901,
-        position: 'absolute',
-        right: 0,
-        top: 0,
-        left: 0,
-        bottom: 0,
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-      }}>
-        {this.state.overBoxJSX}
-      </div>}
+    {this.state.showOverBox && <OverFullScreen zIndex={9001}>
+      {this.state.overBoxJSX}
+    </OverFullScreen>}
     </>);
   }
 
@@ -160,13 +153,29 @@ export class Overlay extends React.Component<{}, OverlayState> {
     this.setState({ messageStack: this.state.messageStack});
   }
 
-  log( m: Message ) {
+  submitMessage( m: Message ) {
     this.state.messageStack.push(m);
     this.setState({ messageStack: this.state.messageStack });
     setTimeout(()=>{ this.shiftMessageStack(); }, this.messageLifeTime);
   }
 
-  showForm( name: string, valuesProps: FormValueProps[], onClickCallBack: ( values: any )=>void, okButtonValue: string = 'ok'): boolean {
+  log( m: string ) {
+    this.submitMessage({ str: m, type: MessageType.log });
+  }
+  
+  success( m: string ) {
+    this.submitMessage({ str: m, type: MessageType.success });
+  }
+
+  error( m: string ) {
+    this.submitMessage({ str: m, type: MessageType.error });
+  }
+
+  warning( m: string ) {
+    this.submitMessage({ str: m, type: MessageType.warning });
+  }
+
+  submitForm( name: string, valuesProps: FormValueProps[], onClickCallBack: ( values: any )=>void, okButtonValue: string = 'ok'): boolean {
     if (this.state.showOverBox)
       return false;
 
@@ -191,4 +200,7 @@ export class Overlay extends React.Component<{}, OverlayState> {
     return true;
   }
 
+  loading() {
+    this.setState({ isLoading: true });
+  }
 }

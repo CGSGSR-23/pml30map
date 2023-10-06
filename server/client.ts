@@ -345,7 +345,7 @@ export class Client {
         break;
       }
 
-    if (inMapName == undefined)
+    if (inMapName == undefined || inMapName == 'undefined')
       this.dbName = defaultMapName;
     if (doesMapExist) {
       if (this.mongodb.dbs[inMapName] == undefined) {

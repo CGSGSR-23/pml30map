@@ -159,3 +159,25 @@ export class PushButton extends React.Component<PushButtonProps, PushButtonState
     );
   }
 }
+
+export class OverFullScreen extends React.Component<React.PropsWithChildren<{ zIndex: number }>, {}> {
+  constructor( props: React.PropsWithChildren<{ zIndex: number }> ) {
+    super(props);
+  }
+  
+  render() {
+    return (<div style={{
+        zIndex: this.props.zIndex,
+        position: 'absolute',
+        right: 0,
+        top: 0,
+        left: 0,
+        bottom: 0,
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}>
+        {this.props.children}     
+      </div>);
+  }
+}
