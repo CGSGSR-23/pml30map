@@ -1,0 +1,6 @@
+{
+  "serverPort": 3047,
+  "useLocalStorage": false,
+  "databaseURL": "mongodb+srv://doadmin:i04J9b2t1X853Cuy@db-mongodb-pml30-75e49c39.mongo.ondigitalocean.com/admin?tls=true&authSource=admin",
+  "ftpStorageData": { "url": "ftpupload.net", "login": "if0_35095022", "password": "e9cdJZmBzH", "root": "pml30map.rf.gd/htdocs/storage" }
+}

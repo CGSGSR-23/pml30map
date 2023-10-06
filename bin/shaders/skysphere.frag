@@ -31,7 +31,7 @@ void main() {
 
   float
     azimuth = acos(direction.y),
-    elevation = sign(direction.z) * acos(direction.x / length(direction.xz));
+    elevation = sign(direction.z) * acos(clamp(direction.x / length(direction.xz), -1.0, 1.0));
   vec2 fetchCoord = vec2(
     elevation / (PI * 2.0) - 0.25,
     azimuth / PI
@@ -42,7 +42,6 @@ void main() {
     vec3 tex2Value = texture(Tex2, fetchCoord).xyz;
 
     outColor = vec4(mix(tex1Value, tex2Value, translateCoefficent), 1.0);
-    // outColor = vec4(translateCoefficent, translateCoefficent, translateCoefficent, 1.0);
   } else {
     outColor = vec4(texture(Tex1, fetchCoord).xyz, 1.0);
   }

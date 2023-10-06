@@ -7,80 +7,54 @@ import { Vec2 } from "../src/system/linmath";
 import { MongoDB } from "./mongodb";
 import { Client } from "./client";
 import { Config, MapConfig } from "./map_config";
-import * as fs from "fs";  
-import { FtpConnection, LocalConnection } from "./storage";
+//import * as fs from "fs";  
+const fs = require("fs");
+import { FtpConnection, LocalConnection, Connection } from "./storage";
+// import { Server } from "socket.io";
 
 const app = express();
 app.use(morgan("combined"));
 app.use(fileupload());
 
+/* Server configuration data. */
+interface ServerConfigData {
+  serverPort: number,
+  useLocalStorage: boolean;
+  localStoragePath: string | undefined;
+  databaseURL: string;
+  ftpStorageData: { url: string, login: string, password: string, root: string } | undefined,
+}
 
-const mapsConfig: MapConfig[] = [
-  {
-    name: "pml30map",
-    dbName: "pml30map",
-    storageURL: "http://pml30map.rf.gd/storage/maps/pml30map/",
-    minimapInfo: {
-      name: 'PML 30',
-      firstFloor: -1,
-      floorCount: 3,
-      defFloor: -1,
-      imgStartPos: new Vec2(9, 31),
-      imgEndPos: new Vec2(969, 758),
-      modelStartPos: new Vec2(-31.369, -15.889),
-      modelEndPos: new Vec2(11.499, 16.445),
-      floors: [
-        {
-          fileName: 'imgs/minimap/f-1.png',
-          floorIndex: -1,
-        },
-        {
-          fileName: 'imgs/minimap/f0.png',
-          floorIndex: 0,
-        },
-        {
-          fileName: 'imgs/minimap/f1.png',
-          floorIndex: 1,
-        },
-        {
-          fileName: 'imgs/minimap/f2.png',
-          floorIndex: 2,
-        },
-        {
-          fileName: 'imgs/minimap/f3.png',
-          floorIndex: 3,
-        },
-        {
-          fileName: 'imgs/minimap/f4.png',
-          floorIndex: 4,
-        },
-      ],
-    },
-  },
-  {
-    name: "camp23map",
-    dbName: "camp23map",
-    storageURL: "http://pml30map.rf.gd/storage/camp23map/",
-    minimapInfo: {
-      name: 'Sum 23 camp',
-      firstFloor: 0,
-      floorCount: 1,
-      defFloor: 0,
-      imgStartPos: new Vec2(198, 40),
-      imgEndPos: new Vec2(527, 850),
-      modelStartPos: new Vec2(-28.336, -34.717),
-      modelEndPos: new Vec2(-7.370, 17.2),
-      floors: [
-        {
-          fileName: 'imgs/minimap/f0.png',
-          floorIndex: 0,
-        },
-      ],
-    },
+function readConfigFile(path: string): ServerConfigData | null {
+  let rawConfig: ServerConfigData;
+  try {
+    rawConfig = JSON.parse(fs.readFileSync(path, "utf-8")) as ServerConfigData;
+  } catch (error) {
+    return null;
   }
-  
-];
 
+  const defaultConfig: ServerConfigData = {
+    serverPort: 3047,
+    useLocalStorage: true,
+    localStoragePath: ".ftpData",
+    databaseURL: "",
+    ftpStorageData: { url: "", login: "", password: "", root: "" },
+  };
+
+  let resultConfig = {};
+  for (let [key, value] of Object.entries(defaultConfig)) {
+    if (rawConfig[key] === undefined || typeof(rawConfig[key]) !== typeof(defaultConfig[key])) {
+      resultConfig[key] = defaultConfig[key];
+    } else {
+      resultConfig[key] = rawConfig[key];
+    }
+  }
+
+  return resultConfig as ServerConfigData;
+} /* readConfigFile */
+
+// read server configuration file
+const serverConfig = readConfigFile("../config/server_config.json");
 
 const enableKeys: number = 2;
                       // 0 - no check
@@ -137,10 +111,15 @@ async function ioInit() {
   const DB = new MongoDB;
   const configFileName = 'config.json';
 
-  const fileStorage = new FtpConnection("ftpupload.net", "if0_35095022", "e9cdJZmBzH");
-  fileStorage.setRootPath("pml30map.rf.gd/htdocs/storage/");
-  // !!!LOCAL
-  // const fileStorage = new LocalConnection("../.ftp_storage/");
+  let fileStorage: Connection;
+  if (serverConfig.useLocalStorage) {
+    fileStorage = new LocalConnection("../" + serverConfig.localStoragePath);
+  } else {
+    console.log('initializing FTP connection...');
+    let connection = new FtpConnection(serverConfig.ftpStorageData.url, serverConfig.ftpStorageData.login, serverConfig.ftpStorageData.password);
+    connection.setRootPath(serverConfig.ftpStorageData.root);
+    fileStorage = connection;
+  }
 
   const config: Config = JSON.parse((await fileStorage.downloadFile(configFileName)).toString());
 
@@ -156,11 +135,10 @@ async function ioInit() {
     await fileStorage.uploadFile(Buffer.from(cStr), "", configFileName);
   };
   
-  await DB.init("mongodb+srv://doadmin:i04J9b2t1X853Cuy@db-mongodb-pml30-75e49c39.mongo.ondigitalocean.com/admin?tls=true&authSource=admin", config.maps.map((e)=>{ return e.dbName; }));
+  // await DB.init("mongodb+srv://doadmin:i04J9b2t1X853Cuy@db-mongodb-pml30-75e49c39.mongo.ondigitalocean.com/admin?tls=true&authSource=admin", config.maps.map((e)=>{ return e.dbName; }));
   // !!!LOCAL
-  // await DB.init("mongodb://localhost:27017", config.maps.map((e)=>{ return e.dbName; }));
+  await DB.init(serverConfig.databaseURL, config.maps.map((e)=>{ return e.dbName; }));
 
-  
   // For test
   io.on("connection", async (socket) => {
     console.log('New connection');
@@ -223,6 +201,7 @@ async function ioInit() {
         {
           console.log("Access denied!!!!!!");
           if (enableKeys == 2)
+            // neve gona giv'u up
             res.redirect("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
           else
             res.sendStatus(404);
@@ -233,7 +212,7 @@ async function ioInit() {
     next(); 
   }, express.static("../dist"));
   
-  server.listen(3047, () => {
+  server.listen(serverConfig.serverPort, () => {
     console.log(`Server started on port ${server.address().port}`);
   });
 }

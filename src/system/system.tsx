@@ -30,8 +30,8 @@ export interface Unit {
  * Timer implementation class
  */
 export class Timer {
-  fpsMeasureDuration: number;
-  fpsLastMeasureTime: number;
+  fpsMeasureDuration: number = 3.0;
+  fpsLastMeasureTime: number = 0.0;
   fpsCounter: number;
 
   initialTime: number;

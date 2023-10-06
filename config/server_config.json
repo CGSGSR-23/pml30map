@@ -1,0 +1,6 @@
+{
+  "serverPort": 3047,
+  "useLocalStorage": true,
+  "localStoragePath": ".ftp_storage/",
+  "databaseURL": "mongodb://127.0.0.1:27017"
+}

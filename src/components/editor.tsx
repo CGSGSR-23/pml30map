@@ -4,7 +4,7 @@ import { queryToStr, OverFullScreen } from "./support";
 import { MinimapEditor } from "./minimap_editor";
 import { MessageType, Overlay } from "./overlay";
 import { System, Unit } from "../system/system";
-import { Topology, Material, Model, UniformBuffer } from "../system/render_resources";
+import { Topology, Model } from "../system/render_resources";
 import { Skysphere } from "../units/skysphere";
 import { BaseConstruction } from "../units/base_construction";
 import * as CameraController from "../units/camera_controller";
@@ -14,170 +14,7 @@ import { NodeData, ConnectionData } from "../socket";
 import { ProjectManager } from "./project_manager";
 import { InputFile } from "./support";
 import { uploadFile } from "./upload";
-
-class Node implements Unit {
-  private manager: GraphManager;
-  private transform: LinMath.Mat4;
-
-  unitType: string = "Node";
-  doSuicide: boolean;
-
-  data: NodeData;
-  uri: URI;
-
-  static create(system: System, manager: GraphManager, data: NodeData): Node {
-    let node = new Node();
-
-    node.manager = manager;
-    node.data = data;
-    node.transform = LinMath.Mat4.translate(data.position);
-
-    return node;
-  } /* create */
-
-  /**
-   * Node transformation matrix update function
-   */
-  updateTrasnform() {
-    this.transform = LinMath.Mat4.translate(this.data.position);
-  } /* updateTrasnform */
-
-  response(system: System): void {
-    system.drawModel(this.manager.nodeModel, this.transform);
-  } /* response */
-} /* Node */
-
-class Connection implements Unit {
-  private manager: GraphManager;
-  private transform: LinMath.Mat4;
-
-  unitType: string = "Connection";
-  doSuicide: boolean;
-
-  data: ConnectionData;
-  uri: URI;
-
-  static create(system: System, manager: GraphManager, data: ConnectionData): Connection {
-    let connection = new Connection();
-
-    connection.manager = manager;
-    connection.data = data;
-
-    connection.updateTransform();
-
-    return connection;
-  } /* create */
-
-  /**
-   * Update transformation matrices of this connection
-   */
-  updateTransform() {
-    let
-      firstPos = this.manager.getNode(this.data.first).data.position,
-      secondPos = this.manager.getNode(this.data.second).data.position;
-    let dir = secondPos.sub(firstPos);
-    let len = dir.length();
-    dir = dir.mulNum(1 / len);
-    let elevation = Math.acos(dir.y);
-
-    this.transform = LinMath.Mat4.identity()
-      .mul(LinMath.Mat4.scaleNum(1, len, 1))
-      .mul(LinMath.Mat4.rotate(elevation, new LinMath.Vec3(-dir.z, 0, dir.x)))
-      .mul(LinMath.Mat4.translate(firstPos))
-    ;
-  } /* updateTransform */
-
-  response(system: System): void {
-    system.drawModel(this.manager.connectionModel, this.transform);
-  } /* response */
-} /* Connection */
-
-
-class GraphManager {
-  private system: System;
-  private editor: Editor;
-  private nodes: Map<string, Node> = new Map<string, Node>();
-  private connections: Map<string, Connection> = new Map<string, Connection>();
-
-  nodeModel: Model;
-  connectionModel: Model;
-
-  static async create(system: System, editor: Editor): Promise<GraphManager> {
-    let manager = new GraphManager();
-    manager.system = system;
-
-    let nodeMaterial = await system.createMaterial("bin/shaders/editor/node");
-    manager.nodeModel = system.createModelFromTopology(Topology.sphere(0.5), nodeMaterial);
-
-    let connectionMaterial = await system.createMaterial("bin/shaders/editor/connection");
-    manager.connectionModel = system.createModelFromTopology(Topology.cylinder(0.2), connectionMaterial);
-
-    return manager;
-  } /* create */
-
-  async addNode(data: NodeData): Promise<Node> {
-    let unit = await this.system.createUnit(Node.create, this, data) as Node;
-    this.nodes.set(data.uri.toStr(), unit);
-
-    return unit;
-  } /* addNode */
-  
-  async addConnection(data: ConnectionData): Promise<Connection> {
-    let unit = await this.system.createUnit(Connection.create, this, data) as Connection;
-    this.connections.set(`${data.first.toStr()} - ${data.second.toStr()}`, unit);
-
-    return unit;
-  } /* addConnection */
-
-  updateConnectionsTransform() {
-    this.connections.forEach((connection) => {
-      connection.updateTransform();
-    });
-  } /* updateConnectionsTransform */
-
-  getNode(uri: URI): Node | undefined {
-    return this.nodes.get(uri.toStr());
-  } /* getNode */
-
-  delNode(node: Node): boolean {
-    let nodeKey = node.data.uri.toStr();
-    let value = this.nodes.get(nodeKey);
-
-    if (value !== undefined) {
-      value.doSuicide = true;
-      this.nodes.delete(nodeKey);
-
-      // delete connections
-      let deletedNodeKeys = [];
-
-      this.connections.forEach((connection, key) => {
-        if (connection.data.first === node.data.uri || connection.data.second === node.data.uri) {
-          connection.doSuicide = true;
-          deletedNodeKeys.push(key);
-        }
-      });
-      for (let key of deletedNodeKeys)
-        this.connections.delete(key);
-
-      return true;
-    }
-
-    return false;
-  } /* delNode */
-
-  delConnection(connection: Connection): boolean {
-    let connectionKey = `${connection.data.first.toStr()} - ${connection.data.second.toStr()}`;
-    let value = this.connections.get(connectionKey);
-
-    if (value !== undefined) {
-      value.doSuicide = true;
-      this.connections.delete(connectionKey);
-      return true;
-    }
-
-    return false;
-  } /* delConnection */
-} /* ConnectionManager */
+import { Node, Connection, GraphManager } from "../units/graph";
 
 enum NodeSelectorMode {
   SELECT,
@@ -371,7 +208,7 @@ class NodeController implements Unit {
         controller.movedNode.updateTrasnform();
 
         editor.props.socket.updateNode(controller.movedNode.data.uri, controller.movedNode.data);
-        editor.graphManager.updateConnectionsTransform();
+        editor.graphManager.updateNodeConnectionsTransforms(controller.movedNode);
         
         // End reposition
         controller.movedNode = null;
@@ -700,7 +537,7 @@ export class Editor extends React.Component<EditorProps, EditorState> implements
     this.skysphere = await this.system.createUnit(Skysphere.create, "bin/imgs/default.png") as Skysphere;
     this.baseConstruction = await this.system.createUnit(BaseConstruction.create, this.props.socket.getStoragePath("models/map.obj")) as BaseConstruction;
     
-    this.graphManager = await GraphManager.create(this.system, this);
+    this.graphManager = await GraphManager.create(this.system);
     
     this.nodeSelector = await this.system.createUnit(NodeSelector.create, this) as NodeSelector;
     this.connectionSelector = await this.system.createUnit(ConnectionSelector.create, this) as ConnectionSelector;

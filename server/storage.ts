@@ -2,6 +2,11 @@ const ftp = require("basic-ftp");
 const { Readable, Writable } = require("stream");
 const fs = require("fs");
 
+export interface Connection {
+  uploadFile( fileData: Buffer, path: string, dest: string ): Promise<boolean>;
+  downloadFile(path: string): Promise<Buffer>;
+} /* connection */
+
 class CommandStack {
   stack: Array<()=>Promise<void>> = [];
   isCommitting = false;
@@ -185,7 +190,7 @@ export class FtpConnection {
   }
 }
 
-// Dummy pseudo-ftp file
+// Connection with local folder
 export class LocalConnection {
   baseDirectory
 
