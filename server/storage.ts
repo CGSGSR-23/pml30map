@@ -191,7 +191,7 @@ export class FtpConnection {
 }
 
 // Connection with local folder
-export class LocalConnection {
+class LocalConnection {
   baseDirectory
 
   constructor(baseDirectory: string = "../!FTPData/") {

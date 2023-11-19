@@ -143,8 +143,6 @@ async function ioInit() {
   io.on("connection", async (socket) => {
     console.log('New connection');
     
-    // console.log(JSON.parse(config.toString()));
-    // console.log(JSON.stringify(mapsConfig));
     new Client(config, saveConfig, DB, socket, getAccessLevel(socket.request));
   });
   
