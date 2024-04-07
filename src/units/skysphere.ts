@@ -39,7 +39,6 @@ export class Skysphere implements Unit {
 
     result.uniformBuffer = system.createUniformBuffer();
     result.uniformBuffer.writeData(new Float32Array([0.0, 0.0, 0.0, 0.0]));
-    
     result.uniformBuffer.bufferName = "translateBuffer";
     
     result.system = system;
